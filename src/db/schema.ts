@@ -1,4 +1,4 @@
-import { pgTable, serial, text, varchar } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, varchar, primaryKey, integer, timestamp } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -9,12 +9,30 @@ export const users = pgTable("users", {
 
 export type User = typeof users.$inferSelect;
 
-export const files = pgTable("files", {
+export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
-  path: text("path").notNull(),
-  contentType: varchar("content_type", { length: 255 }),
-  userId: serial("user_id").references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export type File = typeof files.$inferSelect;
+export type Conversation = typeof conversations.$inferSelect;
+
+export const conversationMembers = pgTable("conversation_members", {
+  conversationId: integer("conversation_id").references(() => conversations.id),
+  userId: integer("user_id").references(() => users.id),
+  joinedAt: timestamp("joined_at").notNull().defaultNow(),
+}, (table) => [
+  primaryKey({ columns: [table.conversationId, table.userId], name: "pk_conversation_members" }),
+]);
+
+export type ConversationMember = typeof conversationMembers.$inferSelect;
+
+export const messages = pgTable("messages", {
+  id: serial("id").primaryKey(),
+  conversationId: integer("conversation_id").references(() => conversations.id),
+  senderId: integer("sender_id").references(() => users.id),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type Message = typeof messages.$inferSelect;

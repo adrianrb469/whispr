@@ -3,6 +3,7 @@ import messaging from "@/features/messaging";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
+import { serve } from "hono/node-server";
 import { ZodError } from "zod";
 
 const app = new Hono();
