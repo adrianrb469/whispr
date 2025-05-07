@@ -3,8 +3,11 @@ import messaging from "@/features/messaging";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
-import { serve } from "hono/node-server";
 import { ZodError } from "zod";
+import { createBunWebSocket } from 'hono/bun'
+import type { ServerWebSocket } from 'bun'
+
+const { websocket } = createBunWebSocket<ServerWebSocket>()
 
 const app = new Hono();
 
@@ -33,6 +36,12 @@ app.onError((err: Error | HTTPException, c) => {
   }
 
   return c.json({ success: false, error: "Internal Server Error" }, 500);
+});
+
+export const server = Bun.serve({
+  fetch: app.fetch,
+  port: 3000,
+  websocket: websocket,
 });
 
 export default app;
