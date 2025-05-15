@@ -26,7 +26,7 @@ app.get("/:id/keybundle", async (c) => {
   return c.json(keybundle);
 });
 
-app.post("/keybundle", validate("json", userBundleSchema), async (c) => {
+app.post("/:userId/keybundle", validate("json", userBundleSchema), async (c) => {
   const userId = +c.req.param("userId")!;
   if (!userId) {
     throw new HTTPException(400, { message: "Invalid user ID" });
