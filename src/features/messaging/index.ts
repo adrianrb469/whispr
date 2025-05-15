@@ -35,37 +35,35 @@ const app = new Hono();
 // );
 
 app.get(
-  "/ws/:topicId",
+  "/ws/:conversationId",
   upgradeWebSocket((c) => {
-    const topicId = c.req.param().topicId as string;
+    const conversationId = c.req.param().conversationId as string;
 
     return {
       onOpen(_, ws) {
         const rawWs = ws.raw as ServerWebSocket;
 
-        // Check if topicId is valid and user is in topic
-        rawWs.subscribe(topicId);
+        // Check if conversationId is valid and user is in conversation
+        rawWs.subscribe(conversationId);
 
-        console.log(`Connected to topic: ${topicId}`);
+        console.log(`Connected to conversation: ${conversationId}`);
       },
 
       onMessage(event, ws) {
-        const rawWs = ws.raw as ServerWebSocket;
-
         try {
           const msg = JSON.parse(event.data);
           // Optional: validate msg fields here
           
           // Save to DB
-          // saveMessageToDb(topicId, msg.senderId, msg.text);
+          // saveMessageToDb(conversationId, msg.senderId, msg.text);
 
-          // Broadcast to everyone else in the same topic
-          // topicSockets.get(topicId)?.forEach((sock) => {
+          // Broadcast to everyone else in the same conversation
+          // conversationSockets.get(conversationId)?.forEach((sock) => {
           //   if (sock !== rawWs) {
           //     sock.send(JSON.stringify(msg));
           //   }
           // });
-          server.publish(topicId, JSON.stringify(msg));
+          server.publish(conversationId, JSON.stringify(msg));
 
         } catch (err) {
           ws.send(JSON.stringify({ error: "Invalid message format" }));
@@ -74,8 +72,8 @@ app.get(
 
       onClose(_, ws) {
         const rawWs = ws.raw as ServerWebSocket;
-        rawWs.unsubscribe(topicId);
-        console.log(`Disconnected from topic: ${topicId}`);
+        rawWs.unsubscribe(conversationId);
+        console.log(`Disconnected from conversation: ${conversationId}`);
       },
     };
   })

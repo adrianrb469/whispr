@@ -1,0 +1,49 @@
+import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
+import { AuthError } from "@utils/errors";
+import { validate } from "@/utils/validation";
+import { userBundleSchema, userOTPKeysSchema } from "./schemas";
+import { getUserById, getKeybundle, addKeybundle, addOTPKeys } from "./service";
+
+const app = new Hono();
+
+app.get("/:id/keybundle", async (c) => {
+  const userId = parseInt(c.req.param("id"), 10);
+  if (isNaN(userId)) {
+    throw new HTTPException(400, { message: "Invalid user ID" });
+  }
+
+  const user = await getUserById(userId);
+  if (!user) {
+    throw new HTTPException(404, { message: "User not found" });
+  }
+
+  const keybundle = await getKeybundle(userId);
+  if (!keybundle) {
+    throw new HTTPException(404, { message: "Keybundle not found" });
+  }
+
+  return c.json(keybundle);
+});
+
+app.post("/keybundle", validate("json", userBundleSchema), async (c) => {
+  const userBundle = c.req.valid("json");
+
+  try {
+    await addKeybundle(userBundle);
+    return c.json({ success: true }, 201);
+  } catch (error) {
+    if (error instanceof AuthError) {
+      throw new HTTPException(403, { message: error.message });
+    }
+    throw new HTTPException(500, { message: "Failed to add keybundle" });
+  }
+});
+
+app.post("/otpkeys", validate("json", userOTPKeysSchema), async (c) => {
+  const userOTPKeys = c.req.valid("json");
+
+  await addOTPKeys({ userId: 1, keys: userOTPKeys });
+});
+
+export default app;
