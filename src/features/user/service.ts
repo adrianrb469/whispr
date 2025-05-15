@@ -78,3 +78,7 @@ export async function addOTPKeys({
 
   return await db.insert(usersOtp).values(usersOTPKeys).returning();
 }
+
+export async function deleteUserBundle(userId: number) {
+  return await db.delete(usersBundle).where(eq(usersBundle.userId, userId));
+}

@@ -3,7 +3,7 @@ import { HTTPException } from "hono/http-exception";
 import { AuthError } from "@utils/errors";
 import { validate } from "@/utils/validation";
 import { userBundleSchema, userOTPKeysSchema } from "./schemas";
-import { getUserById, getKeybundle, addKeybundle, addOTPKeys } from "./service";
+import { getUserById, getKeybundle, addKeybundle, addOTPKeys, deleteUserBundle } from "./service";
 
 const app = new Hono();
 
@@ -38,6 +38,11 @@ app.post("/:userId/keybundle", validate("json", userBundleSchema), async (c) => 
     userId: userId,
     bundle
   };
+
+  const userBundleFound = await getKeybundle(userId);
+  if (userBundleFound) {
+    await deleteUserBundle(userId);
+  }
 
   try {
     await addKeybundle(userBundle);
