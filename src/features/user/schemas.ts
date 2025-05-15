@@ -1,7 +1,6 @@
 import { z } from "zod";
 
 export const userBundleSchema = z.object({
-  userId: z.number(),
   identityKey: z.object({
     keyId: z.string(),
     publicKey: z.string(),

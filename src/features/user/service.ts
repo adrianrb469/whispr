@@ -12,22 +12,52 @@ export async function getUserById(userId: number) {
 }
 
 export async function getKeybundle(userId: number) {
-  return await db.query.usersBundle.findFirst({
+  const keyBundle = await db.query.usersBundle.findFirst({
     where: eq(usersBundle.userId, userId),
+    columns: {
+      identityKey: true,
+      signedPrekey: true,
+      prekeySignature: true,
+    }
+  });
+
+  if (!keyBundle) {
+    return null;
+  }
+
+  const otpKey = await getOTPKey(userId);
+  if (!otpKey) {
+    return null;
+  }
+
+  const { identityKey, signedPrekey, prekeySignature } = keyBundle;
+
+  return {
+    identityKey: identityKey,
+    signedPrekey: signedPrekey,
+    prekeySignature: prekeySignature,
+    otpKey: otpKey.oneTimePrekey,
+  };
+}
+
+async function getOTPKey(userId: number) {
+  return await db.query.usersOtp.findFirst({
+    where: eq(usersOtp.userId, userId),
+    columns: {
+      oneTimePrekey: true,
+    },
   });
 }
 
 export async function addKeybundle({
   userId,
-  identityKey,
-  signedPrekey,
-  prekeySignature,
-}: UserBundleSchema) {
+  bundle
+}: { userId: number, bundle: UserBundleSchema }) {
   return await db.insert(usersBundle).values({
     userId: userId,
-    identityKey: identityKey,
-    signedPrekey: signedPrekey,
-    prekeySignature: prekeySignature,
+    identityKey: bundle.identityKey,
+    signedPrekey: bundle.signedPrekey,
+    prekeySignature: bundle.prekeySignature,
   });
 }
 
