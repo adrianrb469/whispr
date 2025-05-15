@@ -7,11 +7,16 @@ import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
 import { ZodError } from "zod";
 import { createBunWebSocket } from 'hono/bun'
+import { cors } from 'hono/cors'
 import type { ServerWebSocket } from 'bun'
 
 const { websocket } = createBunWebSocket<ServerWebSocket>()
 
 const app = new Hono();
+
+app.use('*', cors({
+  origin: '*',
+}));
 
 app.use("*", logger());
 
