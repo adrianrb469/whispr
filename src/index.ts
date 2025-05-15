@@ -1,6 +1,7 @@
 import auth from "@features/auth";
 import messaging from "@/features/messaging";
 import conversation from "@/features/conversation";
+import user from "@/features/user";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
@@ -17,6 +18,7 @@ app.use("*", logger());
 app.route("/auth", auth)
 app.route("/conversations", conversation)
 app.route("/message", messaging);
+app.route("/user", user)
 
 app.onError((err: Error | HTTPException, c) => {
   if (err instanceof ZodError) {
