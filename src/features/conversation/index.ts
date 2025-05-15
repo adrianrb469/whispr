@@ -1,12 +1,5 @@
-import { HTTPException } from "hono/http-exception";
-import { validate } from "@/utils/validation";
-import { Result, ok, err } from "@/utils/result";
-import { conversations, User, users } from "@db/schema";
-import { conversationMembers } from "@/db/schema";
 import { getConversations, getCoversationsIds } from "./service";
-import { eq, inArray } from "drizzle-orm";
 import { Hono } from "hono";
-import db from "@/db/drizzle";
 
 const app = new Hono();
 

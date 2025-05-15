@@ -2,14 +2,18 @@ import { z } from "zod";
 
 export const userBundleSchema = z.object({
   identityKey: z.object({
-    keyId: z.string(),
-    publicKey: z.string(),
-    signature: z.string(),
+    kty: z.string(),
+    crv: z.string(),
+    x: z.string(),
+    y: z.string(),
+    d: z.string(),
   }),
   signedPrekey: z.object({
-    keyId: z.string(),
-    publicKey: z.string(),
-    signature: z.string(),
+    kty: z.string(),
+    crv: z.string(),
+    x: z.string(),
+    y: z.string(),
+    d: z.string(),
   }),
   prekeySignature: z.string(),
 });
@@ -17,9 +21,11 @@ export const userBundleSchema = z.object({
 export type UserBundleSchema = z.infer<typeof userBundleSchema>;
 
 const oneTimePreKeySchema = z.object({
-  keyId: z.string(),
-  publicKey: z.string(),
-  signature: z.string(),
+  kty: z.string(),
+  crv: z.string(),
+  x: z.string(),
+  y: z.string(),
+  d: z.string(),
 });
 
 export const userOTPKeysSchema = z.array(oneTimePreKeySchema);

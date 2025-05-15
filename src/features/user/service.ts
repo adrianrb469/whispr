@@ -41,12 +41,15 @@ export async function getKeybundle(userId: number) {
 }
 
 async function getOTPKey(userId: number) {
-  return await db.query.usersOtp.findFirst({
+  const key = await db.query.usersOtp.findFirst({
     where: eq(usersOtp.userId, userId),
-    columns: {
-      oneTimePrekey: true,
-    },
   });
+
+  if (key) {
+    await db.delete(usersOtp).where(eq(usersOtp.id, key.id));
+  }
+
+  return key;
 }
 
 export async function addKeybundle({
