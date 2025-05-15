@@ -1,7 +1,7 @@
 import { LoginSchema, type RegisterSchema } from "./schemas";
 import { Result, ok, err } from "@/utils/result";
 import { AuthError } from "@/utils/errors";
-import { User, users } from "@db/schema";
+import { users } from "drizzle/schema";
 import db from "@/db/drizzle";
 import { eq } from "drizzle-orm";
 import * as bcrypt from "bcrypt";
