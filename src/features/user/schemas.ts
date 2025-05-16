@@ -5,16 +5,18 @@ export const keySchema = z.object({
   crv: z.string(),
   x: z.string(),
   y: z.string(),
-})
+});
 
 export const userBundleWithOTPKeysSchema = z.object({
   identityKey: keySchema,
   signedPrekey: keySchema,
   prekeySignature: z.string(),
-  opks: z.array(keySchema)
+  oneTimePreKeys: z.array(keySchema),
 });
 
-export type UserBundleWithOTPKeysSchema = z.infer<typeof userBundleWithOTPKeysSchema>;
+export type UserBundleWithOTPKeysSchema = z.infer<
+  typeof userBundleWithOTPKeysSchema
+>;
 
 export const userBundleSchema = z.object({
   userId: z.number(),

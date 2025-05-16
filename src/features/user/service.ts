@@ -18,7 +18,7 @@ export async function getKeybundle(userId: number) {
       identityKey: true,
       signedPrekey: true,
       prekeySignature: true,
-    }
+    },
   });
 
   if (!keyBundle) {
@@ -53,7 +53,14 @@ async function getOTPKey(userId: number) {
 }
 
 export async function addKeybundle(bundle: UserBundleSchema) {
-  return await db.insert(usersBundle).values(bundle);
+  console.log("bundle inside function", bundle);
+  return await db
+    .insert(usersBundle)
+    .values(bundle)
+    .catch((error) => {
+      console.log("error adding keybundle");
+      console.error(error);
+    });
 }
 
 export async function addOTPKeys({
