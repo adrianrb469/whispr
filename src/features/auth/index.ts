@@ -51,6 +51,15 @@ app.post("/register", validate("json", registerSchema), async (c) => {
   });
 });
 
+app.get("/oauth/github", (c) => {
+  const redirectUrl = "https://github.com/login/oauth/authorize";
+  const clientId = process.env.GITHUB_CLIENT_ID;
+  const redirectUri = "http://localhost:3000/auth/github/callback";
+
+  const url = `${redirectUrl}?client_id=${clientId}&redirect_uri=${redirectUri}`;
+  return c.redirect(url);
+});
+
 app.use(authMiddleware());
 
 app.post("/refresh-token", validate("json", refreshTokenSchema), async (c) => {
