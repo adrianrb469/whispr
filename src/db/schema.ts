@@ -36,3 +36,13 @@ export const messages = pgTable("messages", {
 });
 
 export type Message = typeof messages.$inferSelect;
+
+export const blockchain = pgTable("blockchain", {
+  id: integer("id").primaryKey().notNull(),
+  timestamp: timestamp("timestamp").notNull(),
+  sender: varchar("sender", { length: 255 }).notNull(),
+  message: text("message").notNull(),
+  previousHash: text("previous_hash").notNull(),
+  hash: text("hash").notNull(),
+});
+export type Blockchain = typeof blockchain.$inferSelect;
