@@ -1,15 +1,23 @@
-import { LoginSchema, type RegisterSchema } from "./schemas";
+import {
+  LoginSchema,
+  RefreshTokenSchema,
+  type RegisterSchema,
+} from "./schemas";
 import { Result, ok, err } from "@/utils/result";
 import { AuthError } from "@/utils/errors";
 import { users } from "drizzle/schema";
 import db from "@/db/drizzle";
 import { eq } from "drizzle-orm";
 import * as bcrypt from "bcrypt";
+import { sign } from "hono/jwt";
+
+const JWT_SECRET_KEY = process.env.JWT_KEY!;
+const JWT_EXPIRATION_TIME = 60 * 60; // 1 hour
 
 async function login({
   username,
   password,
-}: LoginSchema): Promise<Result<void>> {
+}: LoginSchema): Promise<Result<{ token: string }>> {
   const result = await db
     .select()
     .from(users)
@@ -30,7 +38,17 @@ async function login({
     );
   }
 
-  return ok(undefined);
+  // handle jwt generation...
+  const payload = {
+    sub: user.id,
+    role: "user",
+    exp: Math.floor(Date.now() / 1000) + JWT_EXPIRATION_TIME,
+  };
+  const token = await sign(payload, JWT_SECRET_KEY);
+
+  return ok({
+    token,
+  });
 }
 
 async function register({
@@ -60,4 +78,17 @@ async function register({
   return ok(undefined);
 }
 
-export { login, register };
+async function refreshToken(user: User): Promise<Result<{ token: string }>> {
+  const payload = {
+    sub: user.id,
+    role: "user",
+    exp: Math.floor(Date.now() / 1000) + JWT_EXPIRATION_TIME,
+  };
+  const token = await sign(payload, JWT_SECRET_KEY);
+
+  return ok({
+    token,
+  });
+}
+
+export { login, register, refreshToken };
