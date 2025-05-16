@@ -14,3 +14,9 @@ export const registerSchema = z.object({
 });
 
 export type RegisterSchema = z.infer<typeof registerSchema>;
+
+export const refreshTokenSchema = z.object({
+  userId: z.string().min(1),
+});
+
+export type RefreshTokenSchema = z.infer<typeof refreshTokenSchema>;
