@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { AuthError } from "@utils/errors";
 import { validate } from "@/utils/validation";
-import { userBundleSchema, userOTPKeysSchema } from "./schemas";
+import { userBundleWithOTPKeysSchema, userOTPKeysSchema } from "./schemas";
 import { getUserById, getKeybundle, addKeybundle, addOTPKeys, deleteUserBundle } from "./service";
 
 const app = new Hono();
@@ -26,7 +26,7 @@ app.get("/:id/keybundle", async (c) => {
   return c.json(keybundle);
 });
 
-app.post("/:userId/keybundle", validate("json", userBundleSchema), async (c) => {
+app.post("/:userId/keybundle", validate("json", userBundleWithOTPKeysSchema), async (c) => {
   const userId = +c.req.param("userId")!;
   if (!userId) {
     throw new HTTPException(400, { message: "Invalid user ID" });
@@ -36,7 +36,9 @@ app.post("/:userId/keybundle", validate("json", userBundleSchema), async (c) => 
 
   const userBundle = {
     userId: userId,
-    bundle
+    identityKey: bundle.identityKey,
+    signedPrekey: bundle.signedPrekey,
+    prekeySignature: bundle.prekeySignature,
   };
 
   const userBundleFound = await getKeybundle(userId);
@@ -46,6 +48,8 @@ app.post("/:userId/keybundle", validate("json", userBundleSchema), async (c) => 
 
   try {
     await addKeybundle(userBundle);
+
+    await addOTPKeys({ userId: userId, keys: bundle.opks });
     return c.json({ success: true }, 201);
   } catch (error) {
     if (error instanceof AuthError) {

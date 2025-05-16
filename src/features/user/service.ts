@@ -52,16 +52,8 @@ async function getOTPKey(userId: number) {
   return key;
 }
 
-export async function addKeybundle({
-  userId,
-  bundle
-}: { userId: number, bundle: UserBundleSchema }) {
-  return await db.insert(usersBundle).values({
-    userId: userId,
-    identityKey: bundle.identityKey,
-    signedPrekey: bundle.signedPrekey,
-    prekeySignature: bundle.prekeySignature,
-  });
+export async function addKeybundle(bundle: UserBundleSchema) {
+  return await db.insert(usersBundle).values(bundle);
 }
 
 export async function addOTPKeys({
@@ -76,7 +68,7 @@ export async function addOTPKeys({
     oneTimePrekey: key,
   }));
 
-  return await db.insert(usersOtp).values(usersOTPKeys).returning();
+  return await db.insert(usersOtp).values(usersOTPKeys);
 }
 
 export async function deleteUserBundle(userId: number) {
