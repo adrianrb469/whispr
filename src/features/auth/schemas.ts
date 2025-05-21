@@ -19,4 +19,14 @@ export const refreshTokenSchema = z.object({
   userId: z.string().min(1),
 });
 
+export const oauthGithubSchema = z.object({
+  code: z.string().min(1),
+});
+
+export const validateTokenSchema = z.object({
+  token: z.string().min(1),
+});
+
 export type RefreshTokenSchema = z.infer<typeof refreshTokenSchema>;
+export type OauthGithubSchema = z.infer<typeof oauthGithubSchema>;
+export type ValidateTokenSchema = z.infer<typeof validateTokenSchema>;

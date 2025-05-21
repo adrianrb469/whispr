@@ -6,24 +6,27 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
 import { ZodError } from "zod";
-import { createBunWebSocket } from 'hono/bun'
-import { cors } from 'hono/cors'
-import type { ServerWebSocket } from 'bun'
+import { createBunWebSocket } from "hono/bun";
+import { cors } from "hono/cors";
+import type { ServerWebSocket } from "bun";
 
-const { websocket } = createBunWebSocket<ServerWebSocket>()
+const { websocket } = createBunWebSocket<ServerWebSocket>();
 
 const app = new Hono();
 
-app.use('*', cors({
-  origin: '*',
-}));
+app.use(
+  "*",
+  cors({
+    origin: "*",
+  })
+);
 
 app.use("*", logger());
 
-app.route("/auth", auth)
-app.route("/conversations", conversation)
+app.route("/auth", auth);
+app.route("/conversations", conversation);
 app.route("/message", messaging);
-app.route("/user", user)
+app.route("/user", user);
 
 app.onError((err: Error | HTTPException, c) => {
   if (err instanceof ZodError) {
@@ -44,7 +47,12 @@ app.onError((err: Error | HTTPException, c) => {
     return c.json({ success: false, error: err.message }, err.status);
   }
 
-  return c.json({ success: false, error: "Internal Server Error" }, 500);
+  console.log("error!!!", err.response.data);
+
+  return c.json(
+    { success: false, error: err.message || "Internal Server Error" },
+    500
+  );
 });
 
 export const server = Bun.serve({

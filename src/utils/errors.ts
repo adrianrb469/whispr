@@ -8,7 +8,11 @@ export class AuthError extends Error {
       | "INVALID_CREDENTIALS"
       | "USER_NOT_FOUND"
       | "USERNAME_TAKEN"
-      | "REGISTRATION_FAILED" = "INVALID_CREDENTIALS"
+      | "REGISTRATION_FAILED"
+      | "GITHUB_ACCESS_TOKEN_FAILED"
+      | "GITHUB_USER_INFO_FAILED"
+      | "INVALID_GITHUB_TOKEN"
+      | "INVALID_JWT_TOKEN" = "INVALID_CREDENTIALS"
   ) {
     super(message);
     this.name = "AuthError";

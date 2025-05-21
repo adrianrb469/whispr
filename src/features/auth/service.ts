@@ -9,7 +9,8 @@ import { users } from "drizzle/schema";
 import db from "@/db/drizzle";
 import { eq } from "drizzle-orm";
 import * as bcrypt from "bcrypt";
-import { sign } from "hono/jwt";
+import { sign, verify } from "hono/jwt";
+import axios from "axios";
 
 const JWT_SECRET_KEY = process.env.JWT_KEY!;
 const JWT_EXPIRATION_TIME = 60 * 60; // 1 hour
@@ -91,4 +92,105 @@ async function refreshToken(user: User): Promise<Result<{ token: string }>> {
   });
 }
 
-export { login, register, refreshToken };
+async function getGithubAccessToken(
+  code: string
+): Promise<Result<{ token: string }>> {
+  const response = await axios.get(
+    "https://github.com/login/oauth/access_token",
+    {
+      params: {
+        client_id: process.env.GITHUB_CLIENT_ID,
+        client_secret: process.env.GITHUB_CLIENT_SECRET,
+        code,
+      },
+      headers: {
+        Accept: "application/json",
+      },
+    }
+  );
+
+  console.log("response github access token:", response.data);
+
+  // api response is 200 if the token is invalid
+  if (response.status !== 200 || response.data.error) {
+    return err(
+      new AuthError(
+        response.data.error_description || "Failed to get github access token",
+        500,
+        "GITHUB_ACCESS_TOKEN_FAILED"
+      )
+    );
+  }
+
+  return ok({
+    token: response.data.access_token,
+  });
+}
+
+async function getGithubUserInfo(
+  token: string
+): Promise<Result<{ data: any }>> {
+  const response = await axios.get("https://api.github.com/user", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (response.status !== 200 || response.data.error) {
+    return err(
+      new AuthError(
+        response.data.error_description || "Failed to get github user info",
+        500,
+        "GITHUB_USER_INFO_FAILED"
+      )
+    );
+  }
+
+  return ok({
+    data: response.data,
+  });
+}
+
+async function verifyJwt(token: string): Promise<Result<{ valid: boolean }>> {
+  try {
+    const payload = await verify(token, JWT_SECRET_KEY);
+  } catch {
+    return ok({
+      valid: false,
+    });
+  }
+
+  return ok({
+    valid: true,
+  });
+}
+
+async function verifyGithubToken(
+  token: string
+): Promise<Result<{ valid: boolean }>> {
+  try {
+    const response = await axios.get("https://api.github.com/", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  } catch {
+    return ok({
+      valid: false,
+    });
+  }
+
+  return ok({
+    valid: true,
+  });
+}
+
+export {
+  login,
+  register,
+  refreshToken,
+  getGithubAccessToken,
+  getGithubUserInfo,
+  verifyJwt,
+  verifyGithubToken,
+};
