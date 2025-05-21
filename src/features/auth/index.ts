@@ -20,6 +20,7 @@ import {
 } from "./service";
 import { authMiddleware } from "@/middleware";
 import { getUserById } from "../user/service";
+import { cors } from "hono/cors";
 
 const app = new Hono();
 
@@ -71,7 +72,6 @@ app.post("/oauth/github", validate("json", oauthGithubSchema), async (c) => {
   const { success, error, data } = await getGithubAccessToken(code);
 
   if (!success || !data) {
-    console.log("error getting github access token:", error);
     const status = error instanceof AuthError ? error.status : 500;
     const code =
       error instanceof AuthError ? error.code : "INTERNAL_SERVER_ERROR";
@@ -89,7 +89,6 @@ app.post("/oauth/github", validate("json", oauthGithubSchema), async (c) => {
   //   // const status = errorUserInfo instanceof AuthError ? errorUserInfo.status : 500;
   //   // const code = errorUserInfo instanceof AuthError ? errorUserInfo.code : "INTERNAL_SERVER_ERROR";
   //   // throw new HTTPException(status, { message: errorUserInfo.message });
-  //   console.log("error getting github user info:", errorUserInfo);
   // }
 
   // TODO: register user
@@ -126,10 +125,6 @@ app.get(
   validate("query", validateTokenSchema),
   async (c) => {
     const { token } = c.req.valid("query");
-
-    if (!token) {
-      throw new HTTPException(400, { message: "No token provided" });
-    }
 
     const { success, data } = await verifyGithubToken(token);
 

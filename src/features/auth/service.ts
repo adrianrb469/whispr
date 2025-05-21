@@ -12,40 +12,43 @@ import * as bcrypt from "bcrypt";
 import { sign, verify } from "hono/jwt";
 import axios from "axios";
 
-const JWT_SECRET_KEY = process.env.JWT_KEY!;
+const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY!;
 const JWT_EXPIRATION_TIME = 60 * 60; // 1 hour
 
 async function login({
   username,
   password,
 }: LoginSchema): Promise<Result<{ token: string }>> {
-  const result = await db
-    .select()
-    .from(users)
-    .where(eq(users.username, username))
-    .limit(1);
+  // const result = await db
+  //   .select()
+  //   .from(users)
+  //   .where(eq(users.username, username))
+  //   .limit(1);
 
-  const user = result[0];
+  // const user = result[0];
 
-  if (!user) {
-    return err(new AuthError("User not found", 404, "USER_NOT_FOUND"));
-  }
+  // if (!user) {
+  //   return err(new AuthError("User not found", 404, "USER_NOT_FOUND"));
+  // }
 
-  const passwordMatch = await bcrypt.compare(password, user.password);
+  // const passwordMatch = await bcrypt.compare(password, user.password);
 
-  if (!passwordMatch) {
-    return err(
-      new AuthError("Invalid credentials", 401, "INVALID_CREDENTIALS")
-    );
-  }
+  // if (!passwordMatch) {
+  //   return err(
+  //     new AuthError("Invalid credentials", 401, "INVALID_CREDENTIALS")
+  //   );
+  // }
 
   // handle jwt generation...
   const payload = {
-    sub: user.id,
+    // sub: user.id,
+    sub: username,
     role: "user",
     exp: Math.floor(Date.now() / 1000) + JWT_EXPIRATION_TIME,
   };
   const token = await sign(payload, JWT_SECRET_KEY);
+
+  console.log("token:", token);
 
   return ok({
     token,
@@ -174,15 +177,21 @@ async function verifyGithubToken(
         Authorization: `Bearer ${token}`,
       },
     });
+
+    if (response.status !== 200 || response.data.error) {
+      return ok({
+        valid: false,
+      });
+    }
+
+    return ok({
+      valid: true,
+    });
   } catch {
     return ok({
       valid: false,
     });
   }
-
-  return ok({
-    valid: true,
-  });
 }
 
 export {
