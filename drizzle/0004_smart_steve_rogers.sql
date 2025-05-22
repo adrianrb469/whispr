@@ -1,0 +1,2 @@
+CREATE TYPE "public"."user_status" AS ENUM('NONE', 'PENDING', 'FINISHED', 'OWNER');--> statement-breakpoint
+ALTER TABLE "conversation_members" ADD COLUMN "status" "user_status" DEFAULT 'NONE' NOT NULL;
