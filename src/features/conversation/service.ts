@@ -6,10 +6,13 @@ import {
   users,
   usersOtp,
   usersBundle,
+  userStatusEnum,
 } from "drizzle/schema";
 import db from "@/db/drizzle";
 import { eq, inArray, and } from "drizzle-orm";
 import { sql } from "drizzle-orm";
+
+export type conversationUserStatus = (typeof userStatusEnum.enumValues)[number];
 
 export interface InitiateConversationPayload {
   to: number;
@@ -76,11 +79,13 @@ export async function initiateConversation(
     await addConversationMember({
       userId: data.to,
       conversationId: conversation.id,
+      status: "PENDING",
     });
 
     await addConversationMember({
       userId: data.from,
       conversationId: conversation.id,
+      status: "OWNER",
     });
 
     // If a one-time prekey was used, mark it as used
@@ -163,6 +168,15 @@ export async function getConversation(conversationId: number) {
     .select()
     .from(conversations)
     .where(eq(conversations.id, conversationId));
+}
+
+export async function changeConversationMemberStatus(conversationId: number, userId: number, status: conversationUserStatus) {
+  return await db
+   .update(conversationMembers)
+   .set({
+      status: status,
+    })
+   .where(and(eq(conversationMembers.conversationId, conversationId), eq(conversationMembers.userId, userId)));
 }
 
 export async function getConversations(conversationsIds: number[]) {
