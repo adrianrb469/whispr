@@ -2,6 +2,7 @@ import {
   getConversations,
   getCoversationsIds,
   initiateConversation,
+  getConversationById,
 } from "./service";
 import { Hono } from "hono";
 import { conversationInitiateSchema } from "./schemas";
@@ -32,6 +33,14 @@ app.get("/", async (c): Promise<Response> => {
     }
 
     return c.json(userConversations);
+  } catch (error) {
+    return c.json({ error: "Internal server error" }, 500);
+  }
+});
+
+app.get("/conversations/pending", async (c) => {
+  try {
+    
   } catch (error) {
     return c.json({ error: "Internal server error" }, 500);
   }

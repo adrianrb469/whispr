@@ -37,6 +37,13 @@ async function addConversationMember(
   return await db.insert(conversationMembers).values(data);
 }
 
+export async function getConversationById(conversationId: number) {
+  return await db
+   .select()
+   .from(conversations)
+   .where(eq(conversations.id, conversationId));
+}
+
 export async function initiateConversation(
   data: InitiateConversationPayload
 ): Promise<Result<number, Error>> {
