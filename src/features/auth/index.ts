@@ -74,20 +74,6 @@ app.post("/oauth/github", validate("json", oauthGithubSchema), async (c) => {
     throw new HTTPException(status, { message: error.message });
   }
 
-  // const {
-  //   success: successUserInfo,
-  //   error: errorUserInfo,
-  //   data: dataUserInfo,
-  // } = await getGithubUserInfo(data.token);
-
-  // if (!successUserInfo || !dataUserInfo) {
-  //   // const status = errorUserInfo instanceof AuthError ? errorUserInfo.status : 500;
-  //   // const code = errorUserInfo instanceof AuthError ? errorUserInfo.code : "INTERNAL_SERVER_ERROR";
-  //   // throw new HTTPException(status, { message: errorUserInfo.message });
-  // }
-
-  // TODO: register user
-
   return c.json({
     access_token: data.access_token,
     refresh_token: data.refresh_token,
