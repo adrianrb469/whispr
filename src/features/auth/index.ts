@@ -13,14 +13,11 @@ import {
   login,
   refreshToken,
   register,
-  getGithubAccessToken,
-  getGithubUserInfo,
-  verifyGithubToken,
+  loginWithGithub,
   verifyJwt,
 } from "./service";
 import { authMiddleware } from "@/middleware";
 import { getUserById } from "../user/service";
-import { cors } from "hono/cors";
 
 const app = new Hono();
 
@@ -40,21 +37,19 @@ app.post("/login", validate("json", loginSchema), async (c) => {
   }
 
   return c.json({
-    token: data.token,
+    access_token: data.access_token,
+    refresh_token: data.refresh_token,
   });
 });
 
 app.post("/register", validate("json", registerSchema), async (c) => {
   const data = c.req.valid("json");
-  const result = await register(data);
+  const { success, error } = await register(data);
 
-  if (!result.success) {
-    const status =
-      result.error instanceof AuthError ? result.error.status : 500;
+  if (!success) {
+    const status = error instanceof AuthError ? error.status : 500;
     const code =
-      result.error instanceof AuthError
-        ? result.error.code
-        : "INTERNAL_SERVER_ERROR";
+      error instanceof AuthError ? error.code : "INTERNAL_SERVER_ERROR";
 
     throw new HTTPException(status, {
       message: code,
@@ -69,7 +64,7 @@ app.post("/register", validate("json", registerSchema), async (c) => {
 app.post("/oauth/github", validate("json", oauthGithubSchema), async (c) => {
   const { code } = c.req.valid("json");
 
-  const { success, error, data } = await getGithubAccessToken(code);
+  const { success, error, data } = await loginWithGithub(code);
 
   if (!success || !data) {
     const status = error instanceof AuthError ? error.status : 500;
@@ -94,7 +89,8 @@ app.post("/oauth/github", validate("json", oauthGithubSchema), async (c) => {
   // TODO: register user
 
   return c.json({
-    token: data.token,
+    access_token: data.access_token,
+    refresh_token: data.refresh_token,
   });
 });
 
@@ -112,24 +108,6 @@ app.get(
 
     if (!success || !data) {
       throw new HTTPException(401, { message: "Invalid JWT token" });
-    }
-
-    return c.json({
-      valid: data.valid,
-    });
-  }
-);
-
-app.get(
-  "/validate-token/github",
-  validate("query", validateTokenSchema),
-  async (c) => {
-    const { token } = c.req.valid("query");
-
-    const { success, data } = await verifyGithubToken(token);
-
-    if (!success || !data) {
-      throw new HTTPException(401, { message: "Invalid Github token" });
     }
 
     return c.json({
@@ -160,7 +138,8 @@ app.post("/refresh-token", validate("json", refreshTokenSchema), async (c) => {
   }
 
   return c.json({
-    token: data.token,
+    access_token: data.access_token,
+    refresh_token: data.refresh_token,
   });
 });
 
