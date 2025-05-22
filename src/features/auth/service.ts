@@ -4,7 +4,7 @@ import { AuthError } from "@/utils/errors";
 import { User, users } from "@db/schema";
 import db from "@/db/drizzle";
 import { eq } from "drizzle-orm";
-import * as bcrypt from "bcrypt";
+import * as bcrypt from "bcryptjs";
 
 async function login({
   username,

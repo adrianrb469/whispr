@@ -7,7 +7,7 @@ import { addBlock, getAllBlocks } from './service';
 
 const blockchainRoute = new Hono();
 
-blockchainRoute.get('/transactions', async (c) => {
+blockchainRoute.get('/transactionss', async (c) => {
   const blocks = await getAllBlocks();
   return c.json(blocks);
 });

@@ -20,6 +20,7 @@ app.route("/blockchain", blockchain);
 
 app.onError((err: Error | HTTPException, c) => {
   if (err instanceof ZodError) {
+    console.error("Unhandled error:", err);
     return c.json(
       {
         success: false,
@@ -34,9 +35,10 @@ app.onError((err: Error | HTTPException, c) => {
   }
 
   if (err instanceof HTTPException) {
+    console.error("Unhandled error:", err);
     return c.json({ success: false, error: err.message }, err.status);
   }
-
+  console.error("Unhandled error:", err);
   return c.json({ success: false, error: "Internal Server Error" }, 500);
 });
 

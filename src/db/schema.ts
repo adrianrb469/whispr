@@ -42,7 +42,7 @@ export const blockchain = pgTable("blockchain", {
   timestamp: timestamp("timestamp").notNull(),
   sender: varchar("sender", { length: 255 }).notNull(),
   message: text("message").notNull(),
-  previousHash: text("previous_hash").notNull(),
+  previousHash: text("previoushash").notNull(),
   hash: text("hash").notNull(),
 });
 export type Blockchain = typeof blockchain.$inferSelect;
