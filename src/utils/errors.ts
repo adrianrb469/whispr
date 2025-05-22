@@ -12,7 +12,8 @@ export class AuthError extends Error {
       | "GITHUB_ACCESS_TOKEN_FAILED"
       | "GITHUB_USER_INFO_FAILED"
       | "INVALID_GITHUB_TOKEN"
-      | "INVALID_JWT_TOKEN" = "INVALID_CREDENTIALS"
+      | "INVALID_JWT_TOKEN"
+      | "TOKEN_GENERATION_FAILED" = "INVALID_CREDENTIALS"
   ) {
     super(message);
     this.name = "AuthError";
