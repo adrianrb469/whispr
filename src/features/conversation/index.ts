@@ -3,6 +3,7 @@ import {
   getCoversationsIds,
   initiateConversation,
   getConversationById,
+  getPendingConversations
 } from "./service";
 import { Hono } from "hono";
 import { conversationInitiateSchema } from "./schemas";
@@ -40,7 +41,14 @@ app.get("/", async (c): Promise<Response> => {
 
 app.get("/conversations/pending", async (c) => {
   try {
-    
+    const userId = c.req.param("userId");
+    if (!userId) {
+      return c.json({ message: "Missing userId" }, 400);
+    }
+
+    const pendingConversations = await getPendingConversations(+userId);
+
+    return c.json(pendingConversations);
   } catch (error) {
     return c.json({ error: "Internal server error" }, 500);
   }

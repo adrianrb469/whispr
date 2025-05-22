@@ -5,6 +5,7 @@ import {
   conversationMembers,
   users,
   usersOtp,
+  usersBundle,
 } from "drizzle/schema";
 import db from "@/db/drizzle";
 import { eq, inArray, and } from "drizzle-orm";
@@ -117,6 +118,44 @@ export async function userInConversation(
       eq(conversationMembers.userId, userId) &&
         eq(conversationMembers.conversationId, conversationId)
     );
+}
+
+export async function getPendingConversations(userId: number) {
+  const userPendingConversations = await db
+    .select({
+      id: conversationMembers.conversationId,
+      initialPayload: conversations.initialPayload,
+    })
+    .from(conversationMembers)
+    .leftJoin(conversations, eq(conversations.id, conversationMembers.conversationId))
+    .where(and(eq(conversationMembers.userId, userId), eq(conversationMembers.status, "PENDING")));
+
+    const conversationsIds = userPendingConversations
+    .map((conversation) => conversation.id)
+    .filter((id): id is number => id!== null);
+
+    const ownerOfConversations = await db
+     .select({
+        conversationId: conversationMembers.conversationId,
+        initiatorId: conversationMembers.userId,
+        initiatorIdentityKey: usersBundle.identityKey,
+      })
+     .from(conversationMembers)
+     .leftJoin(conversations, eq(conversations.id, conversationMembers.conversationId))
+     .leftJoin(usersBundle, eq(usersBundle.userId, conversationMembers.userId))
+     .where(and(inArray(conversationMembers.conversationId, conversationsIds) && eq(conversationMembers.status, "OWNER")));
+
+     const pendingConversations = userPendingConversations.map((conversation) => {
+        const owner = ownerOfConversations.find((owner) => owner.conversationId === conversation.id);
+        return {
+            id: conversation.id,
+            initialPayload: conversation.initialPayload,
+            initiatorId: owner?.initiatorId,
+            initiatorIdentityKey: owner?.initiatorIdentityKey,
+        };
+    });
+
+    return pendingConversations;
 }
 
 export async function getConversation(conversationId: number) {
