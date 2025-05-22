@@ -8,10 +8,15 @@ import {
   getKeybundle,
   addKeybundle,
   addOTPKeys,
-  // deleteUserBundle,
+  getUsers,
 } from "./service";
 
 const app = new Hono();
+
+app.get("/", async (c) => {
+  const users = await getUsers();
+  return c.json(users);
+});
 
 app.get("/:id/keybundle", async (c) => {
   const userId = parseInt(c.req.param("id"), 10);
@@ -23,7 +28,7 @@ app.get("/:id/keybundle", async (c) => {
   if (!user) {
     throw new HTTPException(404, { message: "User not found" });
   }
-
+  console.log("user", user);
   const keybundle = await getKeybundle(userId);
   if (!keybundle) {
     throw new HTTPException(404, { message: "Keybundle not found" });
@@ -61,7 +66,7 @@ app.post(
     try {
       await addKeybundle(userBundle);
 
-      // await addOTPKeys({ userId: userId, keys: bundle.oneTimePreKeys });
+      await addOTPKeys({ userId: userId, keys: bundle.oneTimePreKeys });
       return c.json({ success: true }, 201);
     } catch (error) {
       console.error(error);
