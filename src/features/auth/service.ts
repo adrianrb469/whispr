@@ -228,11 +228,17 @@ async function getGithubUserInfo(token: string): Promise<Result<any>> {
   return ok(response.data);
 }
 
-async function verifyJwt(token: string): Promise<Result<{ valid: boolean }>> {
+async function verifyAccessToken(
+  token: string
+): Promise<Result<{ valid: boolean }>> {
   try {
     const payload = await verify(token, JWT_SECRET_KEY);
 
-    console.log("payload:", payload);
+    if (!payload) {
+      return ok({
+        valid: false,
+      });
+    }
 
     return ok({
       valid: true,
@@ -244,11 +250,52 @@ async function verifyJwt(token: string): Promise<Result<{ valid: boolean }>> {
   }
 }
 
+async function verifyRefreshToken(
+  token: string
+): Promise<Result<{ valid: boolean }>> {
+  try {
+    const payload = await verify(token, JWT_REFRESH_SECRET_KEY);
+
+    if (!payload) {
+      return ok({
+        valid: false,
+      });
+    }
+
+    return ok({
+      valid: true,
+    });
+  } catch {
+    return ok({
+      valid: false,
+    });
+  }
+}
+
+async function generateAccessToken(user: User): Promise<Result<string>> {
+  const access_token = await generateJwt(user.id, JWT_SECRET_KEY, "access");
+
+  return ok(access_token);
+}
+
+async function generateRefreshToken(user: User): Promise<Result<string>> {
+  const refresh_token = await generateJwt(
+    user.id,
+    JWT_REFRESH_SECRET_KEY,
+    "refresh"
+  );
+
+  return ok(refresh_token);
+}
+
 export {
   login,
   register,
   refreshToken,
   loginWithGithub,
   getGithubUserInfo,
-  verifyJwt,
+  verifyAccessToken,
+  verifyRefreshToken,
+  generateAccessToken,
+  generateRefreshToken,
 };
