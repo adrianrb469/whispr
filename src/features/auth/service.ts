@@ -13,45 +13,68 @@ import { sign, verify } from "hono/jwt";
 import axios from "axios";
 
 const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY!;
-const JWT_EXPIRATION_TIME = 60 * 60; // 1 hour
+const JWT_REFRESH_SECRET_KEY = process.env.JWT_REFRESH_SECRET_KEY!;
+const access_token_exp_time = 60 * 60; // 1 hour
+const refresh_token_exp_time = 60 * 60 * 3; // 3 hours
+const access_token_exp = Math.floor(Date.now() / 1000) + access_token_exp_time;
+const refresh_token_exp =
+  Math.floor(Date.now() / 1000) + refresh_token_exp_time;
+
+const generateJwt = (
+  userId: number,
+  secretKey: string,
+  exp: "access" | "refresh"
+) => {
+  const payload = {
+    sub: userId,
+    role: "user",
+    exp: exp === "access" ? access_token_exp : refresh_token_exp,
+  };
+  return sign(payload, secretKey);
+};
 
 async function login({
   username,
   password,
-}: LoginSchema): Promise<Result<{ token: string }>> {
-  // const result = await db
-  //   .select()
-  //   .from(users)
-  //   .where(eq(users.username, username))
-  //   .limit(1);
+}: LoginSchema): Promise<
+  Result<{ access_token: string; refresh_token: string }>
+> {
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.username, username))
+    .limit(1);
 
-  // const user = result[0];
+  const user = result[0];
 
-  // if (!user) {
-  //   return err(new AuthError("User not found", 404, "USER_NOT_FOUND"));
-  // }
+  if (!user) {
+    return err(new AuthError("User not found", 404, "USER_NOT_FOUND"));
+  }
 
-  // const passwordMatch = await bcrypt.compare(password, user.password);
+  const passwordMatch = await bcrypt.compare(password, user.password);
 
-  // if (!passwordMatch) {
-  //   return err(
-  //     new AuthError("Invalid credentials", 401, "INVALID_CREDENTIALS")
-  //   );
-  // }
+  if (!passwordMatch) {
+    return err(
+      new AuthError("Invalid credentials", 401, "INVALID_CREDENTIALS")
+    );
+  }
 
-  // handle jwt generation...
-  const payload = {
-    // sub: user.id,
-    sub: username,
-    role: "user",
-    exp: Math.floor(Date.now() / 1000) + JWT_EXPIRATION_TIME,
-  };
-  const token = await sign(payload, JWT_SECRET_KEY);
+  const access_token = await generateJwt(user.id, JWT_SECRET_KEY, "access");
+  const refresh_token = await generateJwt(
+    user.id,
+    JWT_REFRESH_SECRET_KEY,
+    "refresh"
+  );
 
-  console.log("token:", token);
+  if (!access_token || !refresh_token) {
+    return err(
+      new AuthError("Failed to generate tokens", 500, "TOKEN_GENERATION_FAILED")
+    );
+  }
 
   return ok({
-    token,
+    access_token,
+    refresh_token,
   });
 }
 
@@ -82,22 +105,31 @@ async function register({
   return ok(undefined);
 }
 
-async function refreshToken(user: User): Promise<Result<{ token: string }>> {
-  const payload = {
-    sub: user.id,
-    role: "user",
-    exp: Math.floor(Date.now() / 1000) + JWT_EXPIRATION_TIME,
-  };
-  const token = await sign(payload, JWT_SECRET_KEY);
+async function refreshToken(
+  user: User
+): Promise<Result<{ access_token: string; refresh_token: string }>> {
+  const access_token = await generateJwt(user.id, JWT_SECRET_KEY, "access");
+  const refresh_token = await generateJwt(
+    user.id,
+    JWT_REFRESH_SECRET_KEY,
+    "refresh"
+  );
+
+  if (!access_token || !refresh_token) {
+    return err(
+      new AuthError("Failed to generate tokens", 500, "TOKEN_GENERATION_FAILED")
+    );
+  }
 
   return ok({
-    token,
+    access_token,
+    refresh_token,
   });
 }
 
-async function getGithubAccessToken(
+async function loginWithGithub(
   code: string
-): Promise<Result<{ token: string }>> {
+): Promise<Result<{ access_token: string; refresh_token: string }>> {
   const response = await axios.get(
     "https://github.com/login/oauth/access_token",
     {
@@ -112,8 +144,6 @@ async function getGithubAccessToken(
     }
   );
 
-  console.log("response github access token:", response.data);
-
   // api response is 200 if the token is invalid
   if (response.status !== 200 || response.data.error) {
     return err(
@@ -125,14 +155,60 @@ async function getGithubAccessToken(
     );
   }
 
+  // if the user is not found, create a new user
+  const { success, data } = await getGithubUserInfo(response.data.access_token);
+
+  if (!success || !data) {
+    return err(
+      new AuthError(
+        "Failed to get github user info",
+        500,
+        "GITHUB_USER_INFO_FAILED"
+      )
+    );
+  }
+
+  let user = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, data.id))
+    .limit(1);
+
+  if (user.length === 0) {
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(data.login, salt);
+
+    user = await db
+      .insert(users)
+      .values({
+        id: data.id,
+        username: data.login,
+        password: hashedPassword,
+        name: data.login,
+      })
+      .returning();
+  }
+
+  const access_token = await generateJwt(user[0].id, JWT_SECRET_KEY, "access");
+  const refresh_token = await generateJwt(
+    user[0].id,
+    JWT_REFRESH_SECRET_KEY,
+    "refresh"
+  );
+
+  if (!access_token || !refresh_token) {
+    return err(
+      new AuthError("Failed to generate tokens", 500, "TOKEN_GENERATION_FAILED")
+    );
+  }
+
   return ok({
-    token: response.data.access_token,
+    access_token,
+    refresh_token,
   });
 }
 
-async function getGithubUserInfo(
-  token: string
-): Promise<Result<{ data: any }>> {
+async function getGithubUserInfo(token: string): Promise<Result<any>> {
   const response = await axios.get("https://api.github.com/user", {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -149,36 +225,16 @@ async function getGithubUserInfo(
     );
   }
 
-  return ok({
-    data: response.data,
-  });
+  return ok(response.data);
 }
 
-async function verifyJwt(token: string): Promise<Result<{ valid: boolean }>> {
-  try {
-    const payload = await verify(token, JWT_SECRET_KEY);
-  } catch {
-    return ok({
-      valid: false,
-    });
-  }
-
-  return ok({
-    valid: true,
-  });
-}
-
-async function verifyGithubToken(
+async function verifyAccessToken(
   token: string
 ): Promise<Result<{ valid: boolean }>> {
   try {
-    const response = await axios.get("https://api.github.com/", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const payload = await verify(token, JWT_SECRET_KEY);
 
-    if (response.status !== 200 || response.data.error) {
+    if (!payload) {
       return ok({
         valid: false,
       });
@@ -194,12 +250,52 @@ async function verifyGithubToken(
   }
 }
 
+async function verifyRefreshToken(
+  token: string
+): Promise<Result<{ valid: boolean }>> {
+  try {
+    const payload = await verify(token, JWT_REFRESH_SECRET_KEY);
+
+    if (!payload) {
+      return ok({
+        valid: false,
+      });
+    }
+
+    return ok({
+      valid: true,
+    });
+  } catch {
+    return ok({
+      valid: false,
+    });
+  }
+}
+
+async function generateAccessToken(user: User): Promise<Result<string>> {
+  const access_token = await generateJwt(user.id, JWT_SECRET_KEY, "access");
+
+  return ok(access_token);
+}
+
+async function generateRefreshToken(user: User): Promise<Result<string>> {
+  const refresh_token = await generateJwt(
+    user.id,
+    JWT_REFRESH_SECRET_KEY,
+    "refresh"
+  );
+
+  return ok(refresh_token);
+}
+
 export {
   login,
   register,
   refreshToken,
-  getGithubAccessToken,
+  loginWithGithub,
   getGithubUserInfo,
-  verifyJwt,
-  verifyGithubToken,
+  verifyAccessToken,
+  verifyRefreshToken,
+  generateAccessToken,
+  generateRefreshToken,
 };

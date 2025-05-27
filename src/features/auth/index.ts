@@ -11,16 +11,15 @@ import {
 } from "./schemas";
 import {
   login,
-  refreshToken,
   register,
-  getGithubAccessToken,
-  getGithubUserInfo,
-  verifyGithubToken,
-  verifyJwt,
+  loginWithGithub,
+  verifyRefreshToken,
+  generateAccessToken,
+  generateRefreshToken,
+  verifyAccessToken,
 } from "./service";
 import { authMiddleware } from "@/middleware";
 import { getUserById } from "../user/service";
-import { cors } from "hono/cors";
 
 const app = new Hono();
 
@@ -40,21 +39,19 @@ app.post("/login", validate("json", loginSchema), async (c) => {
   }
 
   return c.json({
-    token: data.token,
+    access_token: data.access_token,
+    refresh_token: data.refresh_token,
   });
 });
 
 app.post("/register", validate("json", registerSchema), async (c) => {
   const data = c.req.valid("json");
-  const result = await register(data);
+  const { success, error } = await register(data);
 
-  if (!result.success) {
-    const status =
-      result.error instanceof AuthError ? result.error.status : 500;
+  if (!success) {
+    const status = error instanceof AuthError ? error.status : 500;
     const code =
-      result.error instanceof AuthError
-        ? result.error.code
-        : "INTERNAL_SERVER_ERROR";
+      error instanceof AuthError ? error.code : "INTERNAL_SERVER_ERROR";
 
     throw new HTTPException(status, {
       message: code,
@@ -69,7 +66,7 @@ app.post("/register", validate("json", registerSchema), async (c) => {
 app.post("/oauth/github", validate("json", oauthGithubSchema), async (c) => {
   const { code } = c.req.valid("json");
 
-  const { success, error, data } = await getGithubAccessToken(code);
+  const { success, error, data } = await loginWithGithub(code);
 
   if (!success || !data) {
     const status = error instanceof AuthError ? error.status : 500;
@@ -79,22 +76,9 @@ app.post("/oauth/github", validate("json", oauthGithubSchema), async (c) => {
     throw new HTTPException(status, { message: error.message });
   }
 
-  // const {
-  //   success: successUserInfo,
-  //   error: errorUserInfo,
-  //   data: dataUserInfo,
-  // } = await getGithubUserInfo(data.token);
-
-  // if (!successUserInfo || !dataUserInfo) {
-  //   // const status = errorUserInfo instanceof AuthError ? errorUserInfo.status : 500;
-  //   // const code = errorUserInfo instanceof AuthError ? errorUserInfo.code : "INTERNAL_SERVER_ERROR";
-  //   // throw new HTTPException(status, { message: errorUserInfo.message });
-  // }
-
-  // TODO: register user
-
   return c.json({
-    token: data.token,
+    access_token: data.access_token,
+    refresh_token: data.refresh_token,
   });
 });
 
@@ -108,7 +92,7 @@ app.get(
       throw new HTTPException(400, { message: "No token provided" });
     }
 
-    const { success, data } = await verifyJwt(token);
+    const { success, data } = await verifyAccessToken(token);
 
     if (!success || !data) {
       throw new HTTPException(401, { message: "Invalid JWT token" });
@@ -120,47 +104,41 @@ app.get(
   }
 );
 
-app.get(
-  "/validate-token/github",
-  validate("query", validateTokenSchema),
-  async (c) => {
-    const { token } = c.req.valid("query");
-
-    const { success, data } = await verifyGithubToken(token);
-
-    if (!success || !data) {
-      throw new HTTPException(401, { message: "Invalid Github token" });
-    }
-
-    return c.json({
-      valid: data.valid,
-    });
-  }
-);
-
-app.use(authMiddleware());
-
 app.post("/refresh-token", validate("json", refreshTokenSchema), async (c) => {
-  const { userId } = c.req.valid("json");
+  const { userId, refresh_token: current_refresh_token } = c.req.valid("json");
 
-  const user = await getUserById(+userId);
+  const user = await getUserById(userId);
 
   if (!user) {
-    throw new HTTPException(404, { message: "User not found" });
+    throw new HTTPException(400, { message: "User not found" });
   }
 
-  const { success, error, data } = await refreshToken(user);
+  const {
+    success: refresh_token_validated,
+    data: verified_refresh_token_data,
+  } = await verifyRefreshToken(current_refresh_token);
 
-  if (!success || !data) {
-    const status = error instanceof AuthError ? error.status : 500;
-    const code =
-      error instanceof AuthError ? error.code : "INTERNAL_SERVER_ERROR";
+  if (!refresh_token_validated || !verified_refresh_token_data.valid) {
+    throw new HTTPException(400, { message: "Invalid refresh token" });
+  }
 
-    throw new HTTPException(status, { message: code });
+  const { success: access_token_success, data: access_token } =
+    await generateAccessToken(user);
+  const { success: refresh_token_success, data: refresh_token } =
+    await generateRefreshToken(user);
+
+  if (
+    !access_token_success ||
+    !refresh_token_success ||
+    !access_token ||
+    !refresh_token
+  ) {
+    throw new HTTPException(500, { message: "Error generating tokens" });
   }
 
   return c.json({
-    token: data.token,
+    access_token,
+    refresh_token,
   });
 });
 

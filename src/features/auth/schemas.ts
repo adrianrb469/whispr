@@ -16,7 +16,8 @@ export const registerSchema = z.object({
 export type RegisterSchema = z.infer<typeof registerSchema>;
 
 export const refreshTokenSchema = z.object({
-  userId: z.string().min(1),
+  refresh_token: z.string().min(1),
+  userId: z.number().min(1),
 });
 
 export const oauthGithubSchema = z.object({

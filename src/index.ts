@@ -47,8 +47,6 @@ app.onError((err: Error | HTTPException, c) => {
     return c.json({ success: false, error: err.message }, err.status);
   }
 
-  console.log("error!!!", err.message);
-
   return c.json(
     { success: false, error: err.message || "Internal Server Error" },
     500
