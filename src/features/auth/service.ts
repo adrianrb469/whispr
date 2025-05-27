@@ -12,6 +12,10 @@ import * as bcrypt from "bcrypt";
 import { sign, verify } from "hono/jwt";
 import axios from "axios";
 
+import { config } from "dotenv";
+
+config();
+
 const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY!;
 const JWT_REFRESH_SECRET_KEY = process.env.JWT_REFRESH_SECRET_KEY!;
 const access_token_exp_time = 60 * 60; // 1 hour
