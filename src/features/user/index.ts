@@ -10,12 +10,32 @@ import {
   addOTPKeys,
   getUsers,
 } from "./service";
+import { authMiddleware } from "@/middleware/auth.middleware";
 
 const app = new Hono();
+
+app.use("*", authMiddleware());
 
 app.get("/", async (c) => {
   const users = await getUsers();
   return c.json(users);
+});
+
+app.get("/me", async (c) => {
+  const payload = c.get("jwtPayload");
+  if (!payload || !payload.sub) {
+    throw new HTTPException(401, { message: "Unauthorized" });
+  }
+  const userId = payload.sub as number;
+  const user = await getUserById(userId);
+  if (!user) {
+    throw new HTTPException(404, { message: "User not found" });
+  }
+
+  // drop password
+  const { password, ...userWithoutPassword } = user;
+
+  return c.json(userWithoutPassword);
 });
 
 app.get("/:id/keybundle", async (c) => {
