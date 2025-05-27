@@ -1,14 +1,15 @@
-import { pgTable, serial, varchar, timestamp, unique, foreignKey, integer, text, jsonb, primaryKey, pgSequence } from "drizzle-orm/pg-core"
+import { pgTable, unique, serial, varchar, timestamp, jsonb, foreignKey, integer, text, primaryKey, pgSequence, pgEnum } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
 
 export const otpkeySequence = pgSequence("otpkey_sequence", {  startWith: "1", increment: "1", minValue: "1", maxValue: "2147483647", cache: "1", cycle: false })
 
-export const conversations = pgTable("conversations", {
-	id: serial().primaryKey().notNull(),
-	name: varchar({ length: 255 }).notNull(),
-	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
-});
+export const userStatusEnum = pgEnum("user_status", [
+  "NONE",
+  "PENDING",
+  "FINISHED",
+  "OWNER",
+])
 
 export const users = pgTable("users", {
 	id: serial().primaryKey().notNull(),
@@ -18,6 +19,13 @@ export const users = pgTable("users", {
 }, (table) => [
 	unique("users_username_unique").on(table.username),
 ]);
+
+export const conversations = pgTable("conversations", {
+	id: serial().primaryKey().notNull(),
+	name: varchar({ length: 255 }).notNull(),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+	initialPayload: jsonb("initial_payload"),
+});
 
 export const messages = pgTable("messages", {
 	id: serial().primaryKey().notNull(),
@@ -68,6 +76,7 @@ export const conversationMembers = pgTable("conversation_members", {
 	conversationId: integer("conversation_id").notNull(),
 	userId: integer("user_id").notNull(),
 	joinedAt: timestamp("joined_at", { mode: 'string' }).defaultNow().notNull(),
+  status: userStatusEnum("status").default("NONE").notNull(),
 }, (table) => [
 	foreignKey({
 			columns: [table.conversationId],

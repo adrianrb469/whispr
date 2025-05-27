@@ -1,5 +1,17 @@
-import { getConversations, getCoversationsIds } from "./service";
+import {
+  getConversations,
+  getCoversationsIds,
+  initiateConversation,
+  getConversationById,
+  getPendingConversations,
+  changeConversationMemberStatus,
+  conversationUserStatus,
+} from "./service";
 import { Hono } from "hono";
+import { conversationInitiateSchema } from "./schemas";
+import { validate } from "@/utils/validation";
+import { HTTPException } from "hono/http-exception";
+import { getUserById } from "../user/service";
 
 const app = new Hono();
 
@@ -14,18 +26,104 @@ app.get("/", async (c): Promise<Response> => {
     if (!userConversationsMembers || userConversationsMembers.length === 0) {
       return c.json({ message: "User has no conversations" }, 404);
     }
-  
-    const conversationsIds = userConversationsMembers.map((member) => member.conversationId).filter((id): id is number => id !== null);
-    
+
+    const conversationsIds = userConversationsMembers
+      .map((member) => member.conversationId)
+      .filter((id): id is number => id !== null);
+
     const userConversations = await getConversations(conversationsIds);
     if (!userConversations || userConversations.length === 0) {
       return c.json({ message: "No conversations were found" }, 404);
     }
-  
+
     return c.json(userConversations);
   } catch (error) {
     return c.json({ error: "Internal server error" }, 500);
   }
-})
+});
+
+app.get("/conversations/pending", async (c) => {
+  try {
+    const userId = c.req.param("userId");
+    if (!userId) {
+      return c.json({ message: "Missing userId" }, 400);
+    }
+
+    const pendingConversations = await getPendingConversations(+userId);
+
+    return c.json(pendingConversations);
+  } catch (error) {
+    return c.json({ error: "Internal server error" }, 500);
+  }
+});
+
+app.put("/:conversationId", async (c) => {
+  try {
+    const conversationId = c.req.param("conversationId");
+    if (!conversationId) {
+      return c.json({ message: "Missing conversationId" }, 400);
+    }
+
+    const userId = c.req.param("userId");
+    if (!userId) {
+      return c.json({ message: "Missing userId" }, 400);
+    }
+
+    const body = await c.req.json();
+    if (!body || !body.status) {
+      return c.json({ message: "Missing status" }, 400);
+    }
+
+    const conversation = await getConversationById(+conversationId);
+    if (!conversation) {
+      return c.json({ message: "Conversation not found" }, 404);
+    }
+
+    const conversationMemberStatus = await changeConversationMemberStatus(
+      +conversationId,
+      +userId,
+      body.status as conversationUserStatus
+    );
+    if (!conversationMemberStatus) {
+      return c.json({ message: "Conversation member not found" }, 404);
+    }
+    return c.json(conversationMemberStatus);
+
+  } catch (error) {
+    return c.json({ error: "Internal server error" }, 500);
+  }
+});
+
+app.post(
+  "/initiate",
+  validate("json", conversationInitiateSchema),
+  async (c) => {
+    try {
+      const initiateData = c.req.valid("json");
+
+      const result = await initiateConversation(initiateData);
+
+      if (result.success) {
+        return c.json(
+          {
+            success: true,
+            conversationId: result.data,
+          },
+          201
+        );
+      } else {
+        throw new HTTPException(400, { message: result.error.message });
+      }
+    } catch (error) {
+      console.error("Error initiating conversation:", error);
+      if (error instanceof HTTPException) {
+        throw error;
+      }
+      throw new HTTPException(500, {
+        message: "Failed to initiate conversation",
+      });
+    }
+  }
+);
 
 export default app;

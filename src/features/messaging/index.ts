@@ -4,6 +4,7 @@ import { createBunWebSocket } from 'hono/bun'
 import type { ServerWebSocket } from 'bun'
 import { server } from "@/index";
 import { userInConversation, getConversation } from "../conversation/service";
+import { addMessage } from "./service";
 
 const { upgradeWebSocket } = createBunWebSocket<ServerWebSocket>()
 
@@ -42,20 +43,19 @@ app.get(
         console.log(`Connected to conversation: ${conversationId}`);
       },
 
-      onMessage(event, ws) {
+      async onMessage(event, ws) {
         try {
           const msg = JSON.parse(event.data.toString());
-          // Optional: validate msg fields here
-          
-          // Save to DB
-          // saveMessageToDb(conversationId, msg.senderId, msg.text);
 
-          // Broadcast to everyone else in the same conversation
-          // conversationSockets.get(conversationId)?.forEach((sock) => {
-          //   if (sock !== rawWs) {
-          //     sock.send(JSON.stringify(msg));
-          //   }
-          // });
+          const message: newMessage = {
+            conversationId: msg.conversationId,
+            senderId: msg.senderId,
+            content: msg.text,
+            createdAt: msg.timestamp,
+          }
+          
+          await addMessage(message);
+
           server.publish(conversationId.toString(), JSON.stringify(msg));
 
         } catch (err) {

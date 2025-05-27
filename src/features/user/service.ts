@@ -11,6 +11,16 @@ export async function getUserById(userId: number) {
   });
 }
 
+export async function getUsers() {
+  return await db.query.users.findMany({
+    columns: {
+      id: true,
+      username: true,
+      name: true,
+    },
+  });
+}
+
 export async function getKeybundle(userId: number) {
   const keyBundle = await db.query.usersBundle.findFirst({
     where: eq(usersBundle.userId, userId),
@@ -21,11 +31,16 @@ export async function getKeybundle(userId: number) {
     },
   });
 
+  console.log("keyBundle", keyBundle);
+
   if (!keyBundle) {
     return null;
   }
 
   const otpKey = await getOTPKey(userId);
+
+  console.log("has otpKey", otpKey);
+
   if (!otpKey) {
     return null;
   }
@@ -45,9 +60,9 @@ async function getOTPKey(userId: number) {
     where: eq(usersOtp.userId, userId),
   });
 
-  if (key) {
-    await db.delete(usersOtp).where(eq(usersOtp.id, key.id));
-  }
+  // if (key) {
+  //   await db.delete(usersOtp).where(eq(usersOtp.id, key.id));
+  // }
 
   return key;
 }
