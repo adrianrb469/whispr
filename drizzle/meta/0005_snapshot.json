@@ -1,4 +1,5 @@
 {
+  "id": "e0161f4d-43db-4ff2-a2c3-3bfd3e11edac",
   "id": "ca291dce-33c1-4640-8f36-b5d9f4b28d37",
   "prevId": "a1140121-e9ea-4f01-bd77-aa6123ff18b4",
   "version": "7",
@@ -215,6 +216,21 @@
           "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true
+        },
+        "mfa_secret": {
+          "name": "mfa_secret",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "''"
+        },
+        "mfa_enabled": {
+          "name": "mfa_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+
         }
       },
       "indexes": {},
@@ -299,6 +315,7 @@
           "name": "user_id",
           "type": "integer",
           "primaryKey": false,
+          "notNull": false
           "notNull": true
         },
         "client_id": {
@@ -312,6 +329,13 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false
+        },
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "nextval('otpkey_sequence'::regclass)"
         }
       },
       "indexes": {},

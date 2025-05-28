@@ -11,6 +11,7 @@ import {
   primaryKey,
   pgSequence,
   pgEnum,
+  boolean,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -37,6 +38,8 @@ export const users = pgTable(
     username: varchar({ length: 255 }).notNull(),
     password: varchar({ length: 255 }).notNull(),
     name: varchar({ length: 255 }).notNull(),
+    mfaSecret: varchar("mfa_secret", { length: 255 }).default(""),
+    mfaActive: boolean("mfa_enabled").default(false).notNull(),
   },
   (table) => [unique("users_username_unique").on(table.username)]
 );
@@ -79,6 +82,10 @@ export const usersOtp = pgTable(
     userId: integer("user_id").notNull(),
     clientId: integer("client_id").notNull(),
     oneTimePrekey: jsonb("one_time_prekey"),
+    id: integer()
+      .default(sql`nextval('otpkey_sequence'::regclass)`)
+      .primaryKey()
+      .notNull(),
   },
   (table) => [
     foreignKey({
