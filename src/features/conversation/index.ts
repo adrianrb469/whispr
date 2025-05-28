@@ -57,14 +57,14 @@ app.get("/pending", async (c) => {
   }
 });
 
-app.put("/:conversationId", async (c) => {
+app.put("/:conversationId/accept", async (c) => {
   try {
     const conversationId = c.req.param("conversationId");
     if (!conversationId) {
       return c.json({ message: "Missing conversationId" }, 400);
     }
 
-    const userId = c.req.param("userId");
+    const userId = c.get("userId");
     if (!userId) {
       return c.json({ message: "Missing userId" }, 400);
     }

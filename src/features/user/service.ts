@@ -30,17 +30,11 @@ export async function getKeybundle(userId: number) {
       prekeySignature: true,
     },
   });
-
-  console.log("keyBundle", keyBundle);
-
   if (!keyBundle) {
     return null;
   }
 
   const otpKey = await getOTPKey(userId);
-
-  console.log("has otpKey", otpKey);
-
   if (!otpKey) {
     return null;
   }
