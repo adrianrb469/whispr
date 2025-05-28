@@ -49,7 +49,7 @@ app.get("/:id/keybundle", async (c) => {
   if (!user) {
     throw new HTTPException(404, { message: "User not found" });
   }
-  console.log("user", user);
+
   const keybundle = await getKeybundle(userId);
   if (!keybundle) {
     throw new HTTPException(404, { message: "Keybundle not found" });
@@ -97,7 +97,7 @@ app.post(
       }
       throw new HTTPException(500, { message: "Failed to add keybundle" });
     }
-  }
+  },
 );
 
 app.post("/otpkeys", validate("json", userOTPKeysSchema), async (c) => {

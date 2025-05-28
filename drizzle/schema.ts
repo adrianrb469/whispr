@@ -41,7 +41,7 @@ export const users = pgTable(
     mfaSecret: varchar("mfa_secret", { length: 255 }).default(""),
     mfaActive: boolean("mfa_enabled").default(false).notNull(),
   },
-  (table) => [unique("users_username_unique").on(table.username)]
+  (table) => [unique("users_username_unique").on(table.username)],
 );
 
 export const conversations = pgTable("conversations", {
@@ -73,7 +73,7 @@ export const messages = pgTable(
       foreignColumns: [users.id],
       name: "messages_sender_id_users_id_fk",
     }),
-  ]
+  ],
 );
 
 export const usersOtp = pgTable(
@@ -82,10 +82,10 @@ export const usersOtp = pgTable(
     userId: integer("user_id").notNull(),
     clientId: integer("client_id").notNull(),
     oneTimePrekey: jsonb("one_time_prekey"),
-    id: integer()
-      .default(sql`nextval('otpkey_sequence'::regclass)`)
-      .primaryKey()
-      .notNull(),
+    // id: integer()
+    //   .default(sql`nextval('otpkey_sequence'::regclass)`)
+    //   .primaryKey()
+    //   .notNull(),
   },
   (table) => [
     foreignKey({
@@ -97,7 +97,7 @@ export const usersOtp = pgTable(
       columns: [table.userId, table.clientId],
       name: "pk_users_otp",
     }),
-  ]
+  ],
 );
 
 export const usersBundle = pgTable(
@@ -108,7 +108,7 @@ export const usersBundle = pgTable(
     signedPrekey: jsonb("signed_prekey"),
     prekeySignature: text("prekey_signature"),
     createdAt: timestamp("created_at", { mode: "string" }).default(
-      sql`CURRENT_TIMESTAMP`
+      sql`CURRENT_TIMESTAMP`,
     ),
   },
   (table) => [
@@ -117,7 +117,7 @@ export const usersBundle = pgTable(
       foreignColumns: [users.id],
       name: "users_bundle_users_id_fk",
     }),
-  ]
+  ],
 );
 
 export const conversationMembers = pgTable(
@@ -143,5 +143,5 @@ export const conversationMembers = pgTable(
       columns: [table.conversationId, table.userId],
       name: "pk_conversation_members",
     }),
-  ]
+  ],
 );

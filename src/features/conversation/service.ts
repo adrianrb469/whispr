@@ -26,7 +26,7 @@ export interface InitiateConversationPayload {
 }
 
 async function addConversation(
-  data: Omit<typeof conversations.$inferInsert, "id">
+  data: Omit<typeof conversations.$inferInsert, "id">,
 ) {
   const [conversation] = await db
     .insert(conversations)
@@ -36,7 +36,7 @@ async function addConversation(
 }
 
 async function addConversationMember(
-  data: typeof conversationMembers.$inferInsert
+  data: typeof conversationMembers.$inferInsert,
 ) {
   return await db.insert(conversationMembers).values(data);
 }
@@ -49,7 +49,7 @@ export async function getConversationById(conversationId: number) {
 }
 
 export async function initiateConversation(
-  data: InitiateConversationPayload
+  data: InitiateConversationPayload,
 ): Promise<Result<number, Error>> {
   try {
     // Verify both users exist
@@ -98,7 +98,7 @@ export async function initiateConversation(
             oneTimePrekey: sql`jsonb_set(${usersOtp.oneTimePrekey}, '{used}', 'true')`,
           })
           .where(
-            and(eq(usersOtp.userId, data.to), eq(usersOtp.clientId, clientId))
+            and(eq(usersOtp.userId, data.to), eq(usersOtp.clientId, clientId)),
           );
       }
     }
@@ -109,21 +109,21 @@ export async function initiateConversation(
     return err(
       error instanceof Error
         ? error
-        : new Error("Failed to initiate conversation")
+        : new Error("Failed to initiate conversation"),
     );
   }
 }
 
 export async function userInConversation(
   userId: number,
-  conversationId: number
+  conversationId: number,
 ) {
   return await db
     .select()
     .from(conversationMembers)
     .where(
       eq(conversationMembers.userId, userId) &&
-        eq(conversationMembers.conversationId, conversationId)
+        eq(conversationMembers.conversationId, conversationId),
     );
 }
 
@@ -136,13 +136,13 @@ export async function getPendingConversations(userId: number) {
     .from(conversationMembers)
     .leftJoin(
       conversations,
-      eq(conversations.id, conversationMembers.conversationId)
+      eq(conversations.id, conversationMembers.conversationId),
     )
     .where(
       and(
         eq(conversationMembers.userId, userId),
-        eq(conversationMembers.status, "PENDING")
-      )
+        eq(conversationMembers.status, "PENDING"),
+      ),
     );
 
   const conversationsIds = userPendingConversations
@@ -158,19 +158,19 @@ export async function getPendingConversations(userId: number) {
     .from(conversationMembers)
     .leftJoin(
       conversations,
-      eq(conversations.id, conversationMembers.conversationId)
+      eq(conversations.id, conversationMembers.conversationId),
     )
     .leftJoin(usersBundle, eq(usersBundle.userId, conversationMembers.userId))
     .where(
       and(
         inArray(conversationMembers.conversationId, conversationsIds) &&
-          eq(conversationMembers.status, "OWNER")
-      )
+          eq(conversationMembers.status, "OWNER"),
+      ),
     );
 
   const pendingConversations = userPendingConversations.map((conversation) => {
     const owner = ownerOfConversations.find(
-      (owner) => owner.conversationId === conversation.id
+      (owner) => owner.conversationId === conversation.id,
     );
     return {
       id: conversation.id,
@@ -193,7 +193,7 @@ export async function getConversation(conversationId: number) {
 export async function changeConversationMemberStatus(
   conversationId: number,
   userId: number,
-  status: conversationUserStatus
+  status: conversationUserStatus,
 ) {
   return await db
     .update(conversationMembers)
@@ -203,8 +203,8 @@ export async function changeConversationMemberStatus(
     .where(
       and(
         eq(conversationMembers.conversationId, conversationId),
-        eq(conversationMembers.userId, userId)
-      )
+        eq(conversationMembers.userId, userId),
+      ),
     );
 }
 
@@ -212,7 +212,7 @@ export async function getConversations(conversationsIds: number[]) {
   return await db
     .select()
     .from(conversations)
-    .where(inArray(users.id, conversationsIds));
+    .where(inArray(conversations.id, conversationsIds));
 }
 
 export async function getCoversationsIds(userId: number) {
