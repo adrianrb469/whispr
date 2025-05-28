@@ -4,6 +4,8 @@ declare global {
     username: string;
     password: string;
     name: string;
+    mfaActive: boolean;
+    mfaSecret: string | null;
   }
 
   interface newMessage {

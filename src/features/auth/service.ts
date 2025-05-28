@@ -41,7 +41,7 @@ async function login({
   username,
   password,
 }: LoginSchema): Promise<
-  Result<{ access_token: string; refresh_token: string }>
+  Result<{ access_token: string; refresh_token: string; user: User }>
 > {
   const result = await db
     .select()
@@ -79,6 +79,7 @@ async function login({
   return ok({
     access_token,
     refresh_token,
+    user,
   });
 }
 

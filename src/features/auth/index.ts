@@ -8,6 +8,7 @@ import {
   refreshTokenSchema,
   registerSchema,
   validateTokenSchema,
+  verifyMfaSchema,
 } from "./schemas";
 import {
   login,
@@ -20,6 +21,11 @@ import {
 } from "./service";
 import { authMiddleware } from "@/middleware";
 import { getUserById } from "../user/service";
+import { generateSecret, otpauthURL, totp } from "speakeasy";
+import { toDataURL } from "qrcode";
+import { users } from "drizzle/schema";
+import { eq } from "drizzle-orm";
+import db from "@/db/drizzle";
 
 const app = new Hono();
 
@@ -38,9 +44,18 @@ app.post("/login", validate("json", loginSchema), async (c) => {
     });
   }
 
+  const { access_token, refresh_token, user } = data;
+
+  // if mfa is active and there is a valid mfa secret string, return mfa: true
+  if (user.mfaActive && user.mfaSecret) {
+    return c.json({
+      mfa: true,
+    });
+  }
+
   return c.json({
-    access_token: data.access_token,
-    refresh_token: data.refresh_token,
+    access_token,
+    refresh_token,
   });
 });
 
@@ -139,6 +154,95 @@ app.post("/refresh-token", validate("json", refreshTokenSchema), async (c) => {
   return c.json({
     access_token,
     refresh_token,
+  });
+});
+
+app.post("/mfa/verify", validate("json", verifyMfaSchema), async (c) => {
+  const { token } = c.req.valid("json");
+  const userId = c.get("userId");
+  const user = await getUserById(userId);
+
+  if (!user) {
+    throw new HTTPException(404, { message: "User not found" });
+  }
+
+  if (!user.mfaSecret) {
+    throw new HTTPException(400, { message: "MFA is not enabled" });
+  }
+
+  const verified = totp.verify({
+    secret: user.mfaSecret,
+    encoding: "base32",
+    token,
+  });
+
+  if (!verified) {
+    throw new HTTPException(400, { message: "Invalid MFA token" });
+  }
+
+  const { data: access_token } = await generateAccessToken(user);
+  const { data: refresh_token } = await generateRefreshToken(user);
+
+  return c.json({
+    access_token,
+    refresh_token,
+  });
+});
+
+// use authMiddleware to the routes below
+app.use("*", authMiddleware());
+
+app.post("/mfa/setup", async (c) => {
+  const userId = c.get("userId");
+  const user = await getUserById(userId);
+
+  if (!user) {
+    throw new HTTPException(404, { message: "User not found" });
+  }
+
+  const secret = generateSecret();
+
+  const url = otpauthURL({
+    secret: secret.base32,
+    label: user.username,
+    encoding: "base32",
+    issuer: "www.whispr.com",
+  });
+
+  const qrCode = await toDataURL(url);
+
+  await db
+    .update(users)
+    .set({
+      mfaSecret: secret.base32,
+      mfaActive: true,
+    })
+    .where(eq(users.id, userId));
+
+  return c.json({
+    secret: secret.base32,
+    qrCode,
+  });
+});
+
+app.post("/mfa/reset", async (c) => {
+  const userId = c.get("userId");
+  const user = await getUserById(userId);
+
+  if (!user) {
+    throw new HTTPException(404, { message: "User not found" });
+  }
+
+  await db
+    .update(users)
+    .set({
+      mfaSecret: "",
+      mfaActive: false,
+    })
+    .where(eq(users.id, userId));
+
+  return c.json({
+    message: "MFA reseted",
   });
 });
 
