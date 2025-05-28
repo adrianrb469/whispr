@@ -14,4 +14,11 @@ declare global {
   }
 }
 
+declare module "hono" {
+  interface ContextVariableMap {
+    userId: number;
+    jwtPayload: any;
+  }
+}
+
 export {};

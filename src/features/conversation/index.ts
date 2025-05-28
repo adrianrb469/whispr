@@ -11,9 +11,11 @@ import { Hono } from "hono";
 import { conversationInitiateSchema } from "./schemas";
 import { validate } from "@/utils/validation";
 import { HTTPException } from "hono/http-exception";
-import { getUserById } from "../user/service";
+import { authMiddleware } from "@/middleware/auth.middleware";
 
 const app = new Hono();
+
+app.use("*", authMiddleware());
 
 app.get("/", async (c): Promise<Response> => {
   try {
@@ -42,12 +44,10 @@ app.get("/", async (c): Promise<Response> => {
   }
 });
 
-app.get("/conversations/pending", async (c) => {
+app.get("/pending", async (c) => {
   try {
-    const userId = c.req.param("userId");
-    if (!userId) {
-      return c.json({ message: "Missing userId" }, 400);
-    }
+    const userId = c.get("userId");
+    console.log("User ID: ", userId);
 
     const pendingConversations = await getPendingConversations(+userId);
 
@@ -82,13 +82,12 @@ app.put("/:conversationId", async (c) => {
     const conversationMemberStatus = await changeConversationMemberStatus(
       +conversationId,
       +userId,
-      body.status as conversationUserStatus
+      body.status as conversationUserStatus,
     );
     if (!conversationMemberStatus) {
       return c.json({ message: "Conversation member not found" }, 404);
     }
     return c.json(conversationMemberStatus);
-
   } catch (error) {
     return c.json({ error: "Internal server error" }, 500);
   }
@@ -109,7 +108,7 @@ app.post(
             success: true,
             conversationId: result.data,
           },
-          201
+          201,
         );
       } else {
         throw new HTTPException(400, { message: result.error.message });
@@ -123,7 +122,7 @@ app.post(
         message: "Failed to initiate conversation",
       });
     }
-  }
+  },
 );
 
 export default app;
