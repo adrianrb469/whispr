@@ -213,7 +213,7 @@ app.post("/mfa/setup", async (c) => {
 
   let secret: string;
 
-  if (user.mfaActive && user?.mfaSecret) {
+  if (user?.mfaSecret) {
     secret = user.mfaSecret;
   } else {
     secret = speakeasy.generateSecret({
@@ -225,7 +225,7 @@ app.post("/mfa/setup", async (c) => {
       .update(users)
       .set({
         mfaSecret: secret,
-        mfaActive: true,
+        // mfaActive: true,
       })
       .where(eq(users.id, userId));
   }
@@ -242,6 +242,34 @@ app.post("/mfa/setup", async (c) => {
   return c.json({
     secret,
     qrCode,
+  });
+});
+
+app.post("/mfa/enable", async (c) => {
+  const userId = c.get("userId");
+  const user = await getUserById(userId);
+
+  if (!user) {
+    throw new HTTPException(404, { message: "User not found" });
+  }
+
+  if (user.mfaActive) {
+    throw new HTTPException(400, { message: "MFA is already enabled" });
+  }
+
+  if (!user.mfaSecret) {
+    throw new HTTPException(400, { message: "MFA is not setup" });
+  }
+
+  await db
+    .update(users)
+    .set({
+      mfaActive: true,
+    })
+    .where(eq(users.id, userId));
+
+  return c.json({
+    message: "MFA enabled",
   });
 });
 
