@@ -134,7 +134,9 @@ async function refreshToken(
 
 async function loginWithGithub(
   code: string
-): Promise<Result<{ access_token: string; refresh_token: string }>> {
+): Promise<
+  Result<{ access_token: string; refresh_token: string; user: User }>
+> {
   const response = await axios.get(
     "https://github.com/login/oauth/access_token",
     {
@@ -210,6 +212,7 @@ async function loginWithGithub(
   return ok({
     access_token,
     refresh_token,
+    user: user[0],
   });
 }
 

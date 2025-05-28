@@ -30,6 +30,7 @@ export const validateTokenSchema = z.object({
 
 export const verifyMfaSchema = z.object({
   token: z.string().min(1),
+  userId: z.string().min(1),
 });
 
 export type VerifyMfaSchema = z.infer<typeof verifyMfaSchema>;

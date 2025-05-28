@@ -30,6 +30,7 @@ app.route("/user", user);
 
 app.onError((err: Error | HTTPException, c) => {
   if (err instanceof ZodError) {
+    console.log("zod error", err);
     return c.json(
       {
         success: false,
@@ -46,6 +47,8 @@ app.onError((err: Error | HTTPException, c) => {
   if (err instanceof HTTPException) {
     return c.json({ success: false, error: err.message }, err.status);
   }
+
+  console.error("error!", err);
 
   return c.json(
     { success: false, error: err.message || "Internal Server Error" },

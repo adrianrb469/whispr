@@ -21,11 +21,12 @@ import {
 } from "./service";
 import { authMiddleware } from "@/middleware";
 import { getUserById } from "../user/service";
-import { generateSecret, otpauthURL, totp } from "speakeasy";
-import { toDataURL } from "qrcode";
+import * as speakeasy from "speakeasy";
+import * as qrcode from "qrcode";
 import { users } from "drizzle/schema";
 import { eq } from "drizzle-orm";
 import db from "@/db/drizzle";
+import { GeneratedSecret } from "speakeasy";
 
 const app = new Hono();
 
@@ -47,9 +48,10 @@ app.post("/login", validate("json", loginSchema), async (c) => {
   const { access_token, refresh_token, user } = data;
 
   // if mfa is active and there is a valid mfa secret string, return mfa: true
-  if (user.mfaActive && user.mfaSecret) {
+  if (user.mfaActive && user?.mfaSecret) {
     return c.json({
       mfa: true,
+      userId: user.id,
     });
   }
 
@@ -91,9 +93,18 @@ app.post("/oauth/github", validate("json", oauthGithubSchema), async (c) => {
     throw new HTTPException(status, { message: error.message });
   }
 
+  const { access_token, refresh_token, user } = data;
+
+  if (user.mfaActive && user?.mfaSecret) {
+    return c.json({
+      mfa: true,
+      userId: user.id,
+    });
+  }
+
   return c.json({
-    access_token: data.access_token,
-    refresh_token: data.refresh_token,
+    access_token,
+    refresh_token,
   });
 });
 
@@ -158,19 +169,19 @@ app.post("/refresh-token", validate("json", refreshTokenSchema), async (c) => {
 });
 
 app.post("/mfa/verify", validate("json", verifyMfaSchema), async (c) => {
-  const { token } = c.req.valid("json");
-  const userId = c.get("userId");
-  const user = await getUserById(userId);
+  const { token, userId } = c.req.valid("json");
+  const user = await getUserById(+userId);
 
   if (!user) {
     throw new HTTPException(404, { message: "User not found" });
   }
 
   if (!user.mfaSecret) {
+    console.log("mfaSecret", user.mfaSecret);
     throw new HTTPException(400, { message: "MFA is not enabled" });
   }
 
-  const verified = totp.verify({
+  const verified = speakeasy.totp.verify({
     secret: user.mfaSecret,
     encoding: "base32",
     token,
@@ -200,27 +211,36 @@ app.post("/mfa/setup", async (c) => {
     throw new HTTPException(404, { message: "User not found" });
   }
 
-  const secret = generateSecret();
+  let secret: string;
 
-  const url = otpauthURL({
-    secret: secret.base32,
+  if (user.mfaActive && user?.mfaSecret) {
+    secret = user.mfaSecret;
+  } else {
+    secret = speakeasy.generateSecret({
+      name: "Whispr",
+      length: 32,
+    }).base32;
+
+    await db
+      .update(users)
+      .set({
+        mfaSecret: secret,
+        mfaActive: true,
+      })
+      .where(eq(users.id, userId));
+  }
+
+  const url = speakeasy.otpauthURL({
+    secret,
     label: user.username,
     encoding: "base32",
     issuer: "www.whispr.com",
   });
 
-  const qrCode = await toDataURL(url);
-
-  await db
-    .update(users)
-    .set({
-      mfaSecret: secret.base32,
-      mfaActive: true,
-    })
-    .where(eq(users.id, userId));
+  const qrCode = await qrcode.toDataURL(url);
 
   return c.json({
-    secret: secret.base32,
+    secret,
     qrCode,
   });
 });
