@@ -1,6 +1,6 @@
 {
-  "id": "e0161f4d-43db-4ff2-a2c3-3bfd3e11edac",
-  "prevId": "a1140121-e9ea-4f01-bd77-aa6123ff18b4",
+  "id": "6d201123-66e0-4d9b-854f-c1f671005de3",
+  "prevId": "e0161f4d-43db-4ff2-a2c3-3bfd3e11edac",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -227,7 +227,7 @@
           "name": "mfa_enabled",
           "type": "boolean",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": false
         }
       },
@@ -313,7 +313,13 @@
           "name": "user_id",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
         },
         "one_time_prekey": {
           "name": "one_time_prekey",
@@ -345,7 +351,15 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "pk_users_otp": {
+          "name": "pk_users_otp",
+          "columns": [
+            "user_id",
+            "client_id"
+          ]
+        }
+      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},

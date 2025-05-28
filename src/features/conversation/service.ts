@@ -43,9 +43,9 @@ async function addConversationMember(
 
 export async function getConversationById(conversationId: number) {
   return await db
-    .select()
-    .from(conversations)
-    .where(eq(conversations.id, conversationId));
+   .select()
+   .from(conversations)
+   .where(eq(conversations.id, conversationId));
 }
 
 export async function initiateConversation(
@@ -90,16 +90,14 @@ export async function initiateConversation(
 
     // If a one-time prekey was used, mark it as used
     if (data.payload.usedOPKId) {
-      const clientId = parseInt(data.payload.usedOPKId, 10);
-      if (!isNaN(clientId)) {
+      const otpkeyId = parseInt(data.payload.usedOPKId, 10);
+      if (!isNaN(otpkeyId)) {
         await db
           .update(usersOtp)
           .set({
             oneTimePrekey: sql`jsonb_set(${usersOtp.oneTimePrekey}, '{used}', 'true')`,
           })
-          .where(
-            and(eq(usersOtp.userId, data.to), eq(usersOtp.clientId, clientId))
-          );
+          .where(and(eq(usersOtp.userId, data.to), eq(usersOtp.id, otpkeyId)));
       }
     }
 
@@ -134,53 +132,35 @@ export async function getPendingConversations(userId: number) {
       initialPayload: conversations.initialPayload,
     })
     .from(conversationMembers)
-    .leftJoin(
-      conversations,
-      eq(conversations.id, conversationMembers.conversationId)
-    )
-    .where(
-      and(
-        eq(conversationMembers.userId, userId),
-        eq(conversationMembers.status, "PENDING")
-      )
-    );
+    .leftJoin(conversations, eq(conversations.id, conversationMembers.conversationId))
+    .where(and(eq(conversationMembers.userId, userId), eq(conversationMembers.status, "PENDING")));
 
-  const conversationsIds = userPendingConversations
+    const conversationsIds = userPendingConversations
     .map((conversation) => conversation.id)
-    .filter((id): id is number => id !== null);
+    .filter((id): id is number => id!== null);
 
-  const ownerOfConversations = await db
-    .select({
-      conversationId: conversationMembers.conversationId,
-      initiatorId: conversationMembers.userId,
-      initiatorIdentityKey: usersBundle.identityKey,
-    })
-    .from(conversationMembers)
-    .leftJoin(
-      conversations,
-      eq(conversations.id, conversationMembers.conversationId)
-    )
-    .leftJoin(usersBundle, eq(usersBundle.userId, conversationMembers.userId))
-    .where(
-      and(
-        inArray(conversationMembers.conversationId, conversationsIds) &&
-          eq(conversationMembers.status, "OWNER")
-      )
-    );
+    const ownerOfConversations = await db
+     .select({
+        conversationId: conversationMembers.conversationId,
+        initiatorId: conversationMembers.userId,
+        initiatorIdentityKey: usersBundle.identityKey,
+      })
+     .from(conversationMembers)
+     .leftJoin(conversations, eq(conversations.id, conversationMembers.conversationId))
+     .leftJoin(usersBundle, eq(usersBundle.userId, conversationMembers.userId))
+     .where(and(inArray(conversationMembers.conversationId, conversationsIds) && eq(conversationMembers.status, "OWNER")));
 
-  const pendingConversations = userPendingConversations.map((conversation) => {
-    const owner = ownerOfConversations.find(
-      (owner) => owner.conversationId === conversation.id
-    );
-    return {
-      id: conversation.id,
-      initialPayload: conversation.initialPayload,
-      initiatorId: owner?.initiatorId,
-      initiatorIdentityKey: owner?.initiatorIdentityKey,
-    };
-  });
+     const pendingConversations = userPendingConversations.map((conversation) => {
+        const owner = ownerOfConversations.find((owner) => owner.conversationId === conversation.id);
+        return {
+            id: conversation.id,
+            initialPayload: conversation.initialPayload,
+            initiatorId: owner?.initiatorId,
+            initiatorIdentityKey: owner?.initiatorIdentityKey,
+        };
+    });
 
-  return pendingConversations;
+    return pendingConversations;
 }
 
 export async function getConversation(conversationId: number) {
@@ -190,22 +170,13 @@ export async function getConversation(conversationId: number) {
     .where(eq(conversations.id, conversationId));
 }
 
-export async function changeConversationMemberStatus(
-  conversationId: number,
-  userId: number,
-  status: conversationUserStatus
-) {
+export async function changeConversationMemberStatus(conversationId: number, userId: number, status: conversationUserStatus) {
   return await db
-    .update(conversationMembers)
-    .set({
+   .update(conversationMembers)
+   .set({
       status: status,
     })
-    .where(
-      and(
-        eq(conversationMembers.conversationId, conversationId),
-        eq(conversationMembers.userId, userId)
-      )
-    );
+   .where(and(eq(conversationMembers.conversationId, conversationId), eq(conversationMembers.userId, userId)));
 }
 
 export async function getConversations(conversationsIds: number[]) {

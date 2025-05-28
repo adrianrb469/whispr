@@ -83,9 +83,7 @@ export const usersOtp = pgTable(
     clientId: integer("client_id").notNull(),
     oneTimePrekey: jsonb("one_time_prekey"),
     id: integer()
-      .default(sql`nextval('otpkey_sequence'::regclass)`)
-      .primaryKey()
-      .notNull(),
+      .default(sql`nextval('otpkey_sequence'::regclass)`),
   },
   (table) => [
     foreignKey({

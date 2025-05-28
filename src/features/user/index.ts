@@ -9,7 +9,6 @@ import {
   addKeybundle,
   addOTPKeys,
   getUsers,
-  getAllOTPKeys,
 } from "./service";
 import { authMiddleware } from "@/middleware/auth.middleware";
 
@@ -76,6 +75,8 @@ app.post(
       prekeySignature: bundle.prekeySignature,
     };
 
+    console.log("userBundle", userBundle);
+
     const userBundleFound = await getKeybundle(userId);
 
     if (userBundleFound) {
@@ -85,10 +86,7 @@ app.post(
     try {
       await addKeybundle(userBundle);
 
-      console.log("oneTimePreKeys", bundle.oneTimePreKeys);
-
       await addOTPKeys({ userId: userId, keys: bundle.oneTimePreKeys });
-
       return c.json({ success: true }, 201);
     } catch (error) {
       console.error(error);
@@ -104,16 +102,6 @@ app.post("/otpkeys", validate("json", userOTPKeysSchema), async (c) => {
   const userOTPKeys = c.req.valid("json");
 
   await addOTPKeys({ userId: 1, keys: userOTPKeys });
-});
-
-app.get("/:id/otpkeys", async (c) => {
-  const userId = parseInt(c.req.param("id"), 10);
-  if (isNaN(userId)) {
-    throw new HTTPException(400, { message: "Invalid user ID" });
-  }
-
-  const otpKeys = await getAllOTPKeys(userId);
-  return c.json(otpKeys);
 });
 
 export default app;

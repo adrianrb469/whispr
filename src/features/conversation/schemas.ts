@@ -17,10 +17,6 @@ export const conversationInitiateSchema = z.object({
     iv: z.array(z.number()),
     ciphertext: z.array(z.number()),
     ephemeralKeyPublicJWK: z.record(z.any()),
-    usedOPKId: z
-      .number()
-      .or(z.string())
-      .transform((val) => val.toString())
-      .optional(),
+    usedOPKId: z.string().optional(),
   }),
 });
