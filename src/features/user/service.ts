@@ -1,7 +1,7 @@
 import { UserBundleSchema, UserOTPKeysSchema } from "./schemas";
 import { Result, ok, err } from "@/utils/result";
 import db from "@/db/drizzle";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { usersBundle, users, usersOtp } from "drizzle/schema";
 import * as bcrypt from "bcrypt";
 
@@ -51,7 +51,10 @@ export async function getKeybundle(userId: number) {
     identityKey: identityKey,
     signedPrekey: signedPrekey,
     prekeySignature: prekeySignature,
-    otpKey: otpKey.oneTimePrekey,
+    otpKey: {
+      ...(otpKey.oneTimePrekey as Record<string, any>),
+      id: otpKey.clientId,
+    },
   };
 }
 
@@ -61,7 +64,7 @@ async function getOTPKey(userId: number) {
   });
 
   // if (key) {
-  //   await db.delete(usersOtp).where(eq(usersOtp.id, key.id));
+  //   await db.delete(usersOtp).where(and(eq(usersOtp.userId, userId), eq(usersOtp.clientId, key.clientId)));
   // }
 
   return key;
@@ -87,6 +90,7 @@ export async function addOTPKeys({
 }) {
   const usersOTPKeys = keys.map((key) => ({
     userId: userId,
+    clientId: key.id,
     oneTimePrekey: key,
   }));
 
@@ -95,4 +99,22 @@ export async function addOTPKeys({
 
 export async function deleteUserBundle(userId: number) {
   return await db.delete(usersBundle).where(eq(usersBundle.userId, userId));
+}
+
+export async function getOTPKeyByClientId(userId: number, clientId: number) {
+  return await db.query.usersOtp.findFirst({
+    where: and(eq(usersOtp.userId, userId), eq(usersOtp.clientId, clientId)),
+  });
+}
+
+export async function deleteOTPKey(userId: number, clientId: number) {
+  return await db
+    .delete(usersOtp)
+    .where(and(eq(usersOtp.userId, userId), eq(usersOtp.clientId, clientId)));
+}
+
+export async function getAllOTPKeys(userId: number) {
+  return await db.query.usersOtp.findMany({
+    where: eq(usersOtp.userId, userId),
+  });
 }

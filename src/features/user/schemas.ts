@@ -7,11 +7,19 @@ export const keySchema = z.object({
   y: z.string(),
 });
 
+export const opkSchema = z.object({
+  id: z.number(),
+  kty: z.string(),
+  crv: z.string(),
+  x: z.string(),
+  y: z.string(),
+});
+
 export const userBundleWithOTPKeysSchema = z.object({
   identityKey: keySchema,
   signedPrekey: keySchema,
   prekeySignature: z.string(),
-  oneTimePreKeys: z.array(keySchema),
+  oneTimePreKeys: z.array(opkSchema),
 });
 
 export type UserBundleWithOTPKeysSchema = z.infer<
@@ -27,6 +35,6 @@ export const userBundleSchema = z.object({
 
 export type UserBundleSchema = z.infer<typeof userBundleSchema>;
 
-export const userOTPKeysSchema = z.array(keySchema);
+export const userOTPKeysSchema = z.array(opkSchema);
 
 export type UserOTPKeysSchema = z.infer<typeof userOTPKeysSchema>;
