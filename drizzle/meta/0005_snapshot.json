@@ -1,5 +1,6 @@
 {
   "id": "e0161f4d-43db-4ff2-a2c3-3bfd3e11edac",
+  "id": "ca291dce-33c1-4640-8f36-b5d9f4b28d37",
   "prevId": "a1140121-e9ea-4f01-bd77-aa6123ff18b4",
   "version": "7",
   "dialect": "postgresql",
@@ -229,6 +230,7 @@
           "primaryKey": false,
           "notNull": false,
           "default": false
+
         }
       },
       "indexes": {},
@@ -314,6 +316,13 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": false
+          "notNull": true
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
         },
         "one_time_prekey": {
           "name": "one_time_prekey",
@@ -345,7 +354,15 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "pk_users_otp": {
+          "name": "pk_users_otp",
+          "columns": [
+            "user_id",
+            "client_id"
+          ]
+        }
+      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},

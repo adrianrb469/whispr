@@ -79,7 +79,8 @@ export const messages = pgTable(
 export const usersOtp = pgTable(
   "users_otp",
   {
-    userId: integer("user_id"),
+    userId: integer("user_id").notNull(),
+    clientId: integer("client_id").notNull(),
     oneTimePrekey: jsonb("one_time_prekey"),
     id: integer()
       .default(sql`nextval('otpkey_sequence'::regclass)`)
@@ -91,6 +92,10 @@ export const usersOtp = pgTable(
       columns: [table.userId],
       foreignColumns: [users.id],
       name: "user_otp_user_id_fk",
+    }),
+    primaryKey({
+      columns: [table.userId, table.clientId],
+      name: "pk_users_otp",
     }),
   ]
 );
