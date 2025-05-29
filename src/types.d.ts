@@ -9,10 +9,10 @@ declare global {
   }
 
   interface newMessage {
-    createdAt: string;
     conversationId: number | null;
     senderId: number | null;
     content: string;
+    createdAt: Date;
   }
 }
 
