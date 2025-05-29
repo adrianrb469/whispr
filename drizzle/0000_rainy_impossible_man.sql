@@ -1,0 +1,67 @@
+-- Current sql file was generated after introspecting the database
+-- If you want to run this migration please uncomment this code before executing migrations
+-- CREATE TYPE "public"."user_status" AS ENUM('NONE', 'PENDING', 'FINISHED', 'OWNER');--> statement-breakpoint
+-- CREATE SEQUENCE "public"."otpkey_sequence" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1;--> statement-breakpoint
+-- CREATE TABLE "blockchain" (
+-- 	"id" serial PRIMARY KEY NOT NULL,
+-- 	"timestamp" timestamp NOT NULL,
+-- 	"sender" text NOT NULL,
+-- 	"message" text NOT NULL,
+-- 	"previoushash" text NOT NULL,
+-- 	"hash" text NOT NULL
+-- );
+-- --> statement-breakpoint
+-- CREATE TABLE "conversations" (
+-- 	"id" serial PRIMARY KEY NOT NULL,
+-- 	"name" varchar(255) NOT NULL,
+-- 	"created_at" timestamp DEFAULT now() NOT NULL,
+-- 	"initial_payload" jsonb
+-- );
+-- --> statement-breakpoint
+-- CREATE TABLE "users" (
+-- 	"id" serial PRIMARY KEY NOT NULL,
+-- 	"username" varchar(255) NOT NULL,
+-- 	"password" varchar(255) NOT NULL,
+-- 	"name" varchar(255) NOT NULL,
+-- 	"mfa_secret" varchar(255) DEFAULT '',
+-- 	"mfa_enabled" boolean DEFAULT false,
+-- 	CONSTRAINT "users_username_unique" UNIQUE("username")
+-- );
+-- --> statement-breakpoint
+-- CREATE TABLE "messages" (
+-- 	"id" serial PRIMARY KEY NOT NULL,
+-- 	"conversation_id" integer,
+-- 	"sender_id" integer,
+-- 	"content" text NOT NULL,
+-- 	"created_at" timestamp DEFAULT now() NOT NULL
+-- );
+-- --> statement-breakpoint
+-- CREATE TABLE "users_bundle" (
+-- 	"user_id" integer PRIMARY KEY NOT NULL,
+-- 	"identity_key" jsonb,
+-- 	"signed_prekey" jsonb,
+-- 	"prekey_signature" text,
+-- 	"created_at" timestamp DEFAULT CURRENT_TIMESTAMP
+-- );
+-- --> statement-breakpoint
+-- CREATE TABLE "users_otp" (
+-- 	"user_id" integer NOT NULL,
+-- 	"one_time_prekey" jsonb,
+-- 	"client_id" integer DEFAULT 0 NOT NULL,
+-- 	CONSTRAINT "pk_users_otp" PRIMARY KEY("user_id","client_id")
+-- );
+-- --> statement-breakpoint
+-- CREATE TABLE "conversation_members" (
+-- 	"conversation_id" integer NOT NULL,
+-- 	"user_id" integer NOT NULL,
+-- 	"joined_at" timestamp DEFAULT now() NOT NULL,
+-- 	"status" "user_status" DEFAULT 'NONE' NOT NULL,
+-- 	CONSTRAINT "pk_conversation_members" PRIMARY KEY("conversation_id","user_id")
+-- );
+--> statement-breakpoint
+-- ALTER TABLE "messages" ADD CONSTRAINT "messages_conversation_id_conversations_id_fk" FOREIGN KEY ("conversation_id") REFERENCES "public"."conversations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+-- ALTER TABLE "messages" ADD CONSTRAINT "messages_sender_id_users_id_fk" FOREIGN KEY ("sender_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+-- ALTER TABLE "users_bundle" ADD CONSTRAINT "users_bundle_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+-- ALTER TABLE "users_otp" ADD CONSTRAINT "user_otp_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+-- ALTER TABLE "conversation_members" ADD CONSTRAINT "conversation_members_conversation_id_conversations_id_fk" FOREIGN KEY ("conversation_id") REFERENCES "public"."conversations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+-- ALTER TABLE "conversation_members" ADD CONSTRAINT "conversation_members_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;

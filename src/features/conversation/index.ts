@@ -2,13 +2,15 @@ import {
   getConversations,
   getCoversationsIds,
   initiateConversation,
+  initiateGroupConversation,
   getConversationById,
   getPendingConversations,
   changeConversationMemberStatus,
   conversationUserStatus,
+  InitiateGroupConversationPayload,
 } from "./service";
 import { Hono } from "hono";
-import { conversationInitiateSchema } from "./schemas";
+import { conversationInitiateSchema, conversationGroupSchema } from "./schemas";
 import { validate } from "@/utils/validation";
 import { HTTPException } from "hono/http-exception";
 import { authMiddleware } from "@/middleware/auth.middleware";
@@ -124,5 +126,38 @@ app.post(
     }
   },
 );
+
+app.post("/group", validate("json", conversationGroupSchema), async (c) => {
+  try {
+    const userId = c.get("userId");
+
+    const body = c.req.valid("json");
+
+    const result = await initiateGroupConversation({
+      ...body,
+      userId,
+    } as InitiateGroupConversationPayload);
+
+    if (result.success) {
+      return c.json(
+        {
+          success: true,
+          conversationId: result.data,
+        },
+        201,
+      );
+    } else {
+      throw new HTTPException(400, { message: result.error.message });
+    }
+  } catch (error) {
+    console.error("Error initiating group conversation:", error);
+    if (error instanceof HTTPException) {
+      throw error;
+    }
+    throw new HTTPException(500, {
+      message: "Failed to initiate group conversation",
+    });
+  }
+});
 
 export default app;

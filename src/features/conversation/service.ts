@@ -25,6 +25,20 @@ export interface InitiateConversationPayload {
   };
 }
 
+export interface InitiateGroupConversationPayload {
+  name: string;
+  userId: number;
+  members: {
+    id: number;
+    payload: {
+      iv: number[];
+      ciphertext: number[];
+      ephemeralKeyPublicJWK: Record<string, any>;
+      usedOPKId?: string;
+    };
+  }[];
+}
+
 async function addConversation(
   data: Omit<typeof conversations.$inferInsert, "id">,
 ) {
@@ -37,6 +51,12 @@ async function addConversation(
 
 async function addConversationMember(
   data: typeof conversationMembers.$inferInsert,
+) {
+  return await db.insert(conversationMembers).values(data);
+}
+
+async function addConversationMembers(
+  data: (typeof conversationMembers.$inferInsert)[],
 ) {
   return await db.insert(conversationMembers).values(data);
 }
@@ -114,6 +134,59 @@ export async function initiateConversation(
   }
 }
 
+export async function initiateGroupConversation(
+  data: InitiateGroupConversationPayload,
+) {
+  try {
+    const conversation = await addConversation({
+      name: data.name,
+      createdAt: new Date().toISOString(),
+      type: "GROUP",
+    });
+
+    await addConversationMember({
+      userId: data.userId,
+      conversationId: conversation.id,
+      status: "OWNER",
+    });
+
+    await addConversationMembers(
+      data.members.map((member) => ({
+        userId: member.id,
+        conversationId: conversation.id,
+        initialPayload: member.payload,
+        status: "PENDING",
+      })),
+    );
+
+    for (const member of data.members) {
+      if (member.payload.usedOPKId) {
+        const clientId = parseInt(member.payload.usedOPKId, 10);
+        const otpKey = await db
+          .update(usersOtp)
+          .set({
+            oneTimePrekey: sql`jsonb_set(${usersOtp.oneTimePrekey}, '{used}', 'true')`,
+          })
+          .where(
+            and(
+              eq(usersOtp.userId, member.id),
+              eq(usersOtp.clientId, clientId),
+            ),
+          );
+      }
+    }
+
+    return ok(conversation.id);
+  } catch (error) {
+    console.error("Failed to initiate group conversation:", error);
+    return err(
+      error instanceof Error
+        ? error
+        : new Error("Failed to initiate group conversation"),
+    );
+  }
+}
+
 export async function userInConversation(
   userId: number,
   conversationId: number,
@@ -138,12 +211,7 @@ export async function getPendingConversations(userId: number) {
       conversations,
       eq(conversations.id, conversationMembers.conversationId),
     )
-    .where(
-      and(
-        eq(conversationMembers.userId, userId),
-        eq(conversationMembers.status, "PENDING"),
-      ),
-    );
+    .where(eq(conversationMembers.userId, userId));
 
   const conversationsIds = userPendingConversations
     .map((conversation) => conversation.id)

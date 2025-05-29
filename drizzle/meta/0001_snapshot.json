@@ -1,9 +1,58 @@
 {
-  "id": "f561ed1e-64d3-475e-85ee-9c75ac60d59d",
-  "prevId": "6175b55e-7fe6-429e-80d1-6327bf813992",
+  "id": "94272a64-8ee8-4e3b-ad70-1d99abd53bd8",
+  "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.blockchain": {
+      "name": "blockchain",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "timestamp": {
+          "name": "timestamp",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sender": {
+          "name": "sender",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "message": {
+          "name": "message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "previoushash": {
+          "name": "previoushash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hash": {
+          "name": "hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.conversation_members": {
       "name": "conversation_members",
       "schema": "",
@@ -26,6 +75,20 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "status": {
+          "name": "status",
+          "type": "user_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'NONE'"
+        },
+        "initial_payload": {
+          "name": "initial_payload",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -87,18 +150,26 @@
           "primaryKey": false,
           "notNull": true
         },
-        "initial_payload": {
-          "name": "initial_payload",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "initial_payload": {
+          "name": "initial_payload",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "type": {
+          "name": "type",
+          "type": "conversation_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'DIRECT'"
         }
       },
       "indexes": {},
@@ -207,6 +278,20 @@
           "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true
+        },
+        "mfa_secret": {
+          "name": "mfa_secret",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "''"
+        },
+        "mfa_enabled": {
+          "name": "mfa_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
         }
       },
       "indexes": {},
@@ -291,7 +376,7 @@
           "name": "user_id",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "one_time_prekey": {
           "name": "one_time_prekey",
@@ -299,12 +384,12 @@
           "primaryKey": false,
           "notNull": false
         },
-        "id": {
-          "name": "id",
+        "client_id": {
+          "name": "client_id",
           "type": "integer",
-          "primaryKey": true,
+          "primaryKey": false,
           "notNull": true,
-          "default": "nextval('otpkey_sequence'::regclass)"
+          "default": 0
         }
       },
       "indexes": {},
@@ -323,14 +408,41 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "pk_users_otp": {
+          "name": "pk_users_otp",
+          "columns": [
+            "user_id",
+            "client_id"
+          ]
+        }
+      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
     }
   },
-  "enums": {},
+  "enums": {
+    "public.conversation_type": {
+      "name": "conversation_type",
+      "schema": "public",
+      "values": [
+        "DIRECT",
+        "GROUP"
+      ]
+    },
+    "public.user_status": {
+      "name": "user_status",
+      "schema": "public",
+      "values": [
+        "NONE",
+        "PENDING",
+        "FINISHED",
+        "OWNER"
+      ]
+    }
+  },
   "schemas": {},
   "sequences": {
     "public.otpkey_sequence": {
