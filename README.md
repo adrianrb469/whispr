@@ -13,6 +13,12 @@
 
 End-to-end encrypted messaging app built with a focus on privacy, simplicity, and modern UX.
 
+## Infraestructura
+
+Para la infraestructura del servidor se utilizó la arquitectura servicio-controlador, un patrón ampliamente adoptado en aplicaciones backend modernas por su separación clara de responsabilidades. Esta arquitectura nos permite desacoplar la lógica de negocio (servicios) de la lógica de enrutamiento y respuesta HTTP (controladores), favoreciendo así la escalabilidad, mantenibilidad y facilidad para realizar pruebas unitarias o integración. Además, se empleó el patrón modular para organizar la aplicación en distintos dominios funcionales, lo cual mejora significativamente la estructura del código y facilita el trabajo colaborativo entre desarrolladores.
+
+Cada uno de los features principales del servidor (como autenticación, blockchain, conversaciones, mensajería, usuario, etc.) se encuentra encapsulado en carpetas independientes dentro del proyecto. Estas carpetas incluyen sus propios controladores, servicios, esquemas de datos (schemas) y enrutadores, permitiendo un desarrollo ágil y ordenado.
+
 ## Features
 
 ### Autenticación Segura
