@@ -211,7 +211,12 @@ export async function getPendingConversations(userId: number) {
       conversations,
       eq(conversations.id, conversationMembers.conversationId),
     )
-    .where(eq(conversationMembers.userId, userId));
+    .where(
+      and(
+        eq(conversationMembers.userId, userId),
+        eq(conversationMembers.status, "PENDING"),
+      ),
+    );
 
   const conversationsIds = userPendingConversations
     .map((conversation) => conversation.id)
