@@ -4,15 +4,15 @@ declare global {
     username: string;
     password: string;
     name: string;
-    mfaActive: boolean;
+    mfaEnabled: boolean;
     mfaSecret: string | null;
   }
 
   interface newMessage {
-    createdAt: string;
     conversationId: number | null;
     senderId: number | null;
     content: string;
+    createdAt: Date;
   }
 }
 
