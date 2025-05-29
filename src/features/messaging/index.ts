@@ -50,18 +50,17 @@ app.get(
         try {
           const msg = JSON.parse(event.data.toString());
 
-          console.log(msg);
+          const message: newMessage = {
+            conversationId: msg.room,
+            senderId: +msg.senderId,
+            content: msg.encryptedContent,
+            createdAt: new Date(msg.timestamp),
+          };
 
-          // const message: newMessage = {
-          //   conversationId: msg.conversationId,
-          //   senderId: msg.senderId,
-          //   content: msg.text,
-          //   createdAt: msg.timestamp,
-          // }
-
-          // await addMessage(message);
-
-          server.publish(conversationId.toString(), JSON.stringify(msg));
+          const addedMessage = await addMessage(message);
+          if (addedMessage) {
+            server.publish(conversationId.toString(), JSON.stringify(msg));
+          }
         } catch (err) {
           ws.send(JSON.stringify({ error: "Invalid message format" }));
         }

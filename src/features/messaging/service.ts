@@ -5,13 +5,13 @@ import db from "@/db/drizzle";
 import { eq, desc } from "drizzle-orm";
 
 export async function addMessage(message: newMessage) {
-    await db.insert(messages).values(message);
+  return await db.insert(messages).values(message);
 }
 
 export async function getMessagesByConversationId(conversationId: number) {
-    return await db
-                .select()
-                .from(messages)
-                .where(eq(messages.conversationId, conversationId))
-                .orderBy(desc(messages.createdAt));
+  return await db
+    .select()
+    .from(messages)
+    .where(eq(messages.conversationId, conversationId))
+    .orderBy(desc(messages.createdAt));
 }
