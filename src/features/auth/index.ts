@@ -48,7 +48,7 @@ app.post("/login", validate("json", loginSchema), async (c) => {
   const { access_token, refresh_token, user } = data;
 
   // if mfa is active and there is a valid mfa secret string, return mfa: true
-  if (user.mfaActive && user?.mfaSecret) {
+  if (user.mfaEnabled && user?.mfaSecret) {
     return c.json({
       mfa: true,
       userId: user.id,
@@ -95,7 +95,7 @@ app.post("/oauth/github", validate("json", oauthGithubSchema), async (c) => {
 
   const { access_token, refresh_token, user } = data;
 
-  if (user.mfaActive && user?.mfaSecret) {
+  if (user.mfaEnabled && user?.mfaSecret) {
     return c.json({
       mfa: true,
       userId: user.id,
@@ -253,7 +253,7 @@ app.post("/mfa/enable", async (c) => {
     throw new HTTPException(404, { message: "User not found" });
   }
 
-  if (user.mfaActive) {
+  if (user.mfaEnabled) {
     throw new HTTPException(400, { message: "MFA is already enabled" });
   }
 
@@ -264,7 +264,7 @@ app.post("/mfa/enable", async (c) => {
   await db
     .update(users)
     .set({
-      mfaActive: true,
+      mfaEnabled: true,
     })
     .where(eq(users.id, userId));
 
@@ -285,7 +285,7 @@ app.post("/mfa/reset", async (c) => {
     .update(users)
     .set({
       mfaSecret: "",
-      mfaActive: false,
+      mfaEnabled: false,
     })
     .where(eq(users.id, userId));
 

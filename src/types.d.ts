@@ -4,7 +4,7 @@ declare global {
     username: string;
     password: string;
     name: string;
-    mfaActive: boolean;
+    mfaEnabled: boolean;
     mfaSecret: string | null;
   }
 
