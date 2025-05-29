@@ -1,19 +1,31 @@
 import {
   pgTable,
-  unique,
   serial,
-  varchar,
   timestamp,
+  text,
+  varchar,
   jsonb,
+  unique,
+  boolean,
   foreignKey,
   integer,
-  text,
   primaryKey,
   pgSequence,
   pgEnum,
-  boolean,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+
+export const userStatus = pgEnum("user_status", [
+  "NONE",
+  "PENDING",
+  "FINISHED",
+  "OWNER",
+]);
+
+export const conversationType = pgEnum("conversation_type", [
+  "DIRECT",
+  "GROUP",
+]);
 
 export const otpkeySequence = pgSequence("otpkey_sequence", {
   startWith: "1",
@@ -24,12 +36,22 @@ export const otpkeySequence = pgSequence("otpkey_sequence", {
   cycle: false,
 });
 
-export const userStatusEnum = pgEnum("user_status", [
-  "NONE",
-  "PENDING",
-  "FINISHED",
-  "OWNER",
-]);
+export const blockchain = pgTable("blockchain", {
+  id: serial().primaryKey().notNull(),
+  timestamp: timestamp({ mode: "string" }).notNull(),
+  sender: text().notNull(),
+  message: text().notNull(),
+  previoushash: text().notNull(),
+  hash: text().notNull(),
+});
+
+export const conversations = pgTable("conversations", {
+  id: serial().primaryKey().notNull(),
+  name: varchar({ length: 255 }).notNull(),
+  createdAt: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
+  initialPayload: jsonb("initial_payload"),
+  type: conversationType().default("DIRECT").notNull(),
+});
 
 export const users = pgTable(
   "users",
@@ -39,17 +61,10 @@ export const users = pgTable(
     password: varchar({ length: 255 }).notNull(),
     name: varchar({ length: 255 }).notNull(),
     mfaSecret: varchar("mfa_secret", { length: 255 }).default(""),
-    mfaActive: boolean("mfa_enabled").default(false).notNull(),
+    mfaEnabled: boolean("mfa_enabled").default(false),
   },
   (table) => [unique("users_username_unique").on(table.username)],
 );
-
-export const conversations = pgTable("conversations", {
-  id: serial().primaryKey().notNull(),
-  name: varchar({ length: 255 }).notNull(),
-  createdAt: timestamp("created_at", { mode: "string" }).defaultNow().notNull(),
-  initialPayload: jsonb("initial_payload"),
-});
 
 export const messages = pgTable(
   "messages",
@@ -76,30 +91,6 @@ export const messages = pgTable(
   ],
 );
 
-export const usersOtp = pgTable(
-  "users_otp",
-  {
-    userId: integer("user_id").notNull(),
-    clientId: integer("client_id").notNull(),
-    oneTimePrekey: jsonb("one_time_prekey"),
-    // id: integer()
-    //   .default(sql`nextval('otpkey_sequence'::regclass)`)
-    //   .primaryKey()
-    //   .notNull(),
-  },
-  (table) => [
-    foreignKey({
-      columns: [table.userId],
-      foreignColumns: [users.id],
-      name: "user_otp_user_id_fk",
-    }),
-    primaryKey({
-      columns: [table.userId, table.clientId],
-      name: "pk_users_otp",
-    }),
-  ],
-);
-
 export const usersBundle = pgTable(
   "users_bundle",
   {
@@ -120,13 +111,34 @@ export const usersBundle = pgTable(
   ],
 );
 
+export const usersOtp = pgTable(
+  "users_otp",
+  {
+    userId: integer("user_id").notNull(),
+    oneTimePrekey: jsonb("one_time_prekey"),
+    clientId: integer("client_id").default(0).notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.userId],
+      foreignColumns: [users.id],
+      name: "user_otp_user_id_fk",
+    }),
+    primaryKey({
+      columns: [table.userId, table.clientId],
+      name: "pk_users_otp",
+    }),
+  ],
+);
+
 export const conversationMembers = pgTable(
   "conversation_members",
   {
     conversationId: integer("conversation_id").notNull(),
     userId: integer("user_id").notNull(),
     joinedAt: timestamp("joined_at", { mode: "string" }).defaultNow().notNull(),
-    status: userStatusEnum("status").default("NONE").notNull(),
+    status: userStatus().default("NONE").notNull(),
+    initialPayload: jsonb("initial_payload"),
   },
   (table) => [
     foreignKey({

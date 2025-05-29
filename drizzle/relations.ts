@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm/relations";
-import { conversations, messages, users, usersOtp, usersBundle, conversationMembers } from "./schema";
+import { conversations, messages, users, usersBundle, usersOtp, conversationMembers } from "./schema";
 
 export const messagesRelations = relations(messages, ({one}) => ({
 	conversation: one(conversations, {
@@ -19,21 +19,21 @@ export const conversationsRelations = relations(conversations, ({many}) => ({
 
 export const usersRelations = relations(users, ({many}) => ({
 	messages: many(messages),
-	usersOtps: many(usersOtp),
 	usersBundles: many(usersBundle),
+	usersOtps: many(usersOtp),
 	conversationMembers: many(conversationMembers),
-}));
-
-export const usersOtpRelations = relations(usersOtp, ({one}) => ({
-	user: one(users, {
-		fields: [usersOtp.userId],
-		references: [users.id]
-	}),
 }));
 
 export const usersBundleRelations = relations(usersBundle, ({one}) => ({
 	user: one(users, {
 		fields: [usersBundle.userId],
+		references: [users.id]
+	}),
+}));
+
+export const usersOtpRelations = relations(usersOtp, ({one}) => ({
+	user: one(users, {
+		fields: [usersOtp.userId],
 		references: [users.id]
 	}),
 }));

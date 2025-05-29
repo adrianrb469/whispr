@@ -19,7 +19,7 @@ app.get(
       async onOpen(_, ws) {
         const rawWs = ws.raw as ServerWebSocket;
 
-        const userId = 1;
+        const userId = c.get("userId");
 
         const conversation = await getConversation(conversationId);
 
