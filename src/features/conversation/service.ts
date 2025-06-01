@@ -162,7 +162,7 @@ export async function initiateGroupConversation(
     for (const member of data.members) {
       if (member.payload.usedOPKId) {
         const clientId = parseInt(member.payload.usedOPKId, 10);
-        const otpKey = await db
+        await db
           .update(usersOtp)
           .set({
             oneTimePrekey: sql`jsonb_set(${usersOtp.oneTimePrekey}, '{used}', 'true')`,
@@ -204,7 +204,9 @@ export async function getPendingConversations(userId: number) {
   const userPendingConversations = await db
     .select({
       id: conversationMembers.conversationId,
-      initialPayload: conversations.initialPayload,
+      conversationInitialPayload: conversations.initialPayload,
+      memberInitialPayload: conversationMembers.initialPayload,
+      conversationType: conversations.type,
     })
     .from(conversationMembers)
     .leftJoin(
@@ -218,7 +220,16 @@ export async function getPendingConversations(userId: number) {
       ),
     );
 
-  const conversationsIds = userPendingConversations
+  const processedConversations = userPendingConversations.map((conv) => ({
+    id: conv.id,
+    initialPayload:
+      conv.conversationType === "DIRECT"
+        ? conv.conversationInitialPayload
+        : conv.memberInitialPayload,
+    type: conv.conversationType,
+  }));
+
+  const conversationsIds = processedConversations
     .map((conversation) => conversation.id)
     .filter((id): id is number => id !== null);
 
@@ -241,7 +252,7 @@ export async function getPendingConversations(userId: number) {
       ),
     );
 
-  const pendingConversations = userPendingConversations.map((conversation) => {
+  const pendingConversations = processedConversations.map((conversation) => {
     const owner = ownerOfConversations.find(
       (owner) => owner.conversationId === conversation.id,
     );
@@ -250,10 +261,34 @@ export async function getPendingConversations(userId: number) {
       initialPayload: conversation.initialPayload,
       initiatorId: owner?.initiatorId,
       initiatorIdentityKey: owner?.initiatorIdentityKey,
+      type: conversation.type,
     };
   });
 
   return pendingConversations;
+}
+
+export async function getGroupConversations(userId: number) {
+  const userConversations = await db
+    .select({
+      conversationId: conversationMembers.conversationId,
+    })
+    .from(conversationMembers)
+    .where(eq(conversationMembers.userId, userId));
+
+  const conversationIds = userConversations
+    .map((conv) => conv.conversationId)
+    .filter((id): id is number => id !== null);
+
+  return await db
+    .select()
+    .from(conversations)
+    .where(
+      and(
+        inArray(conversations.id, conversationIds),
+        eq(conversations.type, "GROUP"),
+      ),
+    );
 }
 
 export async function getConversation(conversationId: number) {

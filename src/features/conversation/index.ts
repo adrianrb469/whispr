@@ -5,6 +5,7 @@ import {
   initiateGroupConversation,
   getConversationById,
   getPendingConversations,
+  getGroupConversations,
   changeConversationMemberStatus,
   conversationUserStatus,
   InitiateGroupConversationPayload,
@@ -157,6 +158,18 @@ app.post("/group", validate("json", conversationGroupSchema), async (c) => {
     throw new HTTPException(500, {
       message: "Failed to initiate group conversation",
     });
+  }
+});
+
+app.get("/group", async (c) => {
+  try {
+    const userId = c.get("userId");
+
+    const pendingConversations = await getGroupConversations(+userId);
+
+    return c.json(pendingConversations);
+  } catch (error) {
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
