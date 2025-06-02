@@ -2,6 +2,8 @@
   "name": "server",
   "scripts": {
     "dev": "bun run --hot src/index.ts",
+    "build": "bun build ./src/index.ts --outdir ./build --target bun",
+    "start": "bun ./build/index.js",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio"
@@ -25,6 +27,9 @@
     "@types/pg": "^8.11.11",
     "@types/qrcode": "^1.5.5",
     "@types/speakeasy": "^2.0.10",
-    "drizzle-kit": "^0.30.6"
+    "aws-sdk": "^2.1659.0",
+    "drizzle-kit": "^0.30.6",
+    "mock-aws-s3": "^4.0.2",
+    "nock": "^13.5.4"
   }
 }
