@@ -53,10 +53,6 @@ app.get("/:conversationId/messages", async (c) => {
   const userId = c.get("userId");
   const isDirectMessage = c.req.query("isDirectMessage");
 
-  console.log("Conversation ID:", conversationId);
-  console.log("User ID:", userId);
-  console.log("Is Direct Message:", isDirectMessage);
-
   if (!conversationId) {
     return c.json({ message: "Missing conversationId" }, 400);
   }
@@ -66,8 +62,6 @@ app.get("/:conversationId/messages", async (c) => {
     userId,
     isDirectMessage === "true",
   );
-
-  console.log("Messages: ", messages);
 
   return c.json(messages);
 });

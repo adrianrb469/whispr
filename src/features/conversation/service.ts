@@ -330,8 +330,16 @@ export async function getConversationMessages(
 ) {
   if (!isDirectMessage) {
     return await db
-      .select()
+      .select({
+        id: messages.id,
+        conversationId: messages.conversationId,
+        senderId: messages.senderId,
+        senderName: users.username,
+        content: messages.content,
+        createdAt: messages.createdAt,
+      })
       .from(messages)
+      .innerJoin(users, eq(messages.senderId, users.id))
       .where(eq(messages.conversationId, conversationId));
   } else {
     const otherUserId = conversationId;
