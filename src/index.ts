@@ -58,8 +58,6 @@ app.onError((err: Error | HTTPException, c) => {
 
 export const server = Bun.serve({
   fetch: app.fetch,
-  port: 3000,
+  port: parseInt(process.env.PORT || "3000"),
   websocket: websocket,
 });
-
-export default app;
