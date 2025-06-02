@@ -7,9 +7,11 @@ import {
   usersOtp,
   usersBundle,
   userStatusEnum,
+  messages,
+  messages,
 } from "drizzle/schema";
 import db from "@/db/drizzle";
-import { eq, inArray, and } from "drizzle-orm";
+import { eq, inArray, and, asc } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 
 export type conversationUserStatus = (typeof userStatusEnum.enumValues)[number];
@@ -266,6 +268,76 @@ export async function getPendingConversations(userId: number) {
   });
 
   return pendingConversations;
+}
+
+async function getDirectMessageHistory(
+  currentUserId: number,
+  targetUserId: number,
+) {
+  // First, find the direct message conversation that includes both users
+  const conversation = await db
+    .select({
+      conversationId: conversations.id,
+      conversationName: conversations.name,
+      createdAt: conversations.createdAt,
+    })
+    .from(conversations)
+    .innerJoin(
+      conversationMembers,
+      eq(conversations.id, conversationMembers.conversationId),
+    )
+    .where(
+      and(
+        eq(conversations.type, "DIRECT"),
+        inArray(conversationMembers.userId, [currentUserId, targetUserId]),
+      ),
+    )
+    .groupBy(conversations.id, conversations.name, conversations.createdAt)
+    .having(sql`COUNT(DISTINCT ${conversationMembers.userId}) = 2`)
+    .limit(1); // Get just the first one if multiple DMs exist
+
+  if (conversation.length === 0) {
+    return { conversation: null, messages: [] };
+  }
+
+  const conversationId = conversation[0].conversationId;
+
+  // Then get all messages for that conversation with sender info
+  const chatHistory = await db
+    .select({
+      messages,
+    })
+    .from(messages)
+    .innerJoin(users, eq(messages.senderId, users.id))
+    .where(eq(messages.conversationId, conversationId))
+    .orderBy(asc(messages.createdAt));
+
+  const chat = chatHistory.map((message) => ({
+    id: message.messages.id,
+    conversationId: message.messages.conversationId,
+    senderId: message.messages.senderId,
+    content: message.messages.content,
+    createdAt: message.messages.createdAt,
+  }));
+
+  return chat;
+}
+
+export async function getConversationMessages(
+  conversationId: number,
+  userId: number,
+  isDirectMessage: boolean,
+) {
+  if (!isDirectMessage) {
+    return await db
+      .select()
+      .from(messages)
+      .where(eq(messages.conversationId, conversationId));
+  } else {
+    const otherUserId = conversationId;
+
+    return await getDirectMessageHistory(otherUserId, userId);
+  }
 }
 
 export async function getGroupConversations(userId: number) {

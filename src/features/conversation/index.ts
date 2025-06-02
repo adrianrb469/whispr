@@ -8,6 +8,7 @@ import {
   getGroupConversations,
   changeConversationMemberStatus,
   conversationUserStatus,
+  getConversationMessages,
   InitiateGroupConversationPayload,
 } from "./service";
 import { Hono } from "hono";
@@ -45,6 +46,30 @@ app.get("/", async (c): Promise<Response> => {
   } catch (error) {
     return c.json({ error: "Internal server error" }, 500);
   }
+});
+
+app.get("/:conversationId/messages", async (c) => {
+  const conversationId = c.req.param("conversationId");
+  const userId = c.get("userId");
+  const isDirectMessage = c.req.query("isDirectMessage");
+
+  console.log("Conversation ID:", conversationId);
+  console.log("User ID:", userId);
+  console.log("Is Direct Message:", isDirectMessage);
+
+  if (!conversationId) {
+    return c.json({ message: "Missing conversationId" }, 400);
+  }
+
+  const messages = await getConversationMessages(
+    +conversationId,
+    userId,
+    isDirectMessage === "true",
+  );
+
+  console.log("Messages: ", messages);
+
+  return c.json(messages);
 });
 
 app.get("/pending", async (c) => {
@@ -165,9 +190,9 @@ app.get("/group", async (c) => {
   try {
     const userId = c.get("userId");
 
-    const pendingConversations = await getGroupConversations(+userId);
+    const groupConversations = await getGroupConversations(+userId);
 
-    return c.json(pendingConversations);
+    return c.json(groupConversations);
   } catch (error) {
     return c.json({ error: "Internal server error" }, 500);
   }
