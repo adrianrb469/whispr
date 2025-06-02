@@ -5,8 +5,10 @@ import {
   initiateGroupConversation,
   getConversationById,
   getPendingConversations,
+  getGroupConversations,
   changeConversationMemberStatus,
   conversationUserStatus,
+  getConversationMessages,
   InitiateGroupConversationPayload,
 } from "./service";
 import { Hono } from "hono";
@@ -44,6 +46,24 @@ app.get("/", async (c): Promise<Response> => {
   } catch (error) {
     return c.json({ error: "Internal server error" }, 500);
   }
+});
+
+app.get("/:conversationId/messages", async (c) => {
+  const conversationId = c.req.param("conversationId");
+  const userId = c.get("userId");
+  const isDirectMessage = c.req.query("isDirectMessage");
+
+  if (!conversationId) {
+    return c.json({ message: "Missing conversationId" }, 400);
+  }
+
+  const messages = await getConversationMessages(
+    +conversationId,
+    userId,
+    isDirectMessage === "true",
+  );
+
+  return c.json(messages);
 });
 
 app.get("/pending", async (c) => {
@@ -157,6 +177,18 @@ app.post("/group", validate("json", conversationGroupSchema), async (c) => {
     throw new HTTPException(500, {
       message: "Failed to initiate group conversation",
     });
+  }
+});
+
+app.get("/group", async (c) => {
+  try {
+    const userId = c.get("userId");
+
+    const groupConversations = await getGroupConversations(+userId);
+
+    return c.json(groupConversations);
+  } catch (error) {
+    return c.json({ error: "Internal server error" }, 500);
   }
 });
 
