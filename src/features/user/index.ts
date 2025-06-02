@@ -10,6 +10,7 @@ import {
   addOTPKeys,
   getUsers,
   getAllOTPKeys,
+  deleteUser,
 } from "./service";
 import { authMiddleware } from "@/middleware/auth.middleware";
 
@@ -114,6 +115,20 @@ app.get("/:id/otpkeys", async (c) => {
 
   const otpKeys = await getAllOTPKeys(userId);
   return c.json(otpKeys);
+});
+
+app.delete("", async (c) => {
+  const userId = c.get("userId");
+  if (isNaN(userId)) {
+    throw new HTTPException(400, { message: "Invalid user ID" });
+  }
+
+  const deletedUser = await deleteUser(userId);
+  if (!deletedUser) {
+    throw new HTTPException(404, { message: "Could not delete user" });
+  }
+
+  return c.json({ success: true }, 200);
 });
 
 export default app;

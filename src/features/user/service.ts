@@ -2,7 +2,14 @@ import { UserBundleSchema, UserOTPKeysSchema } from "./schemas";
 import { Result, ok, err } from "@/utils/result";
 import db from "@/db/drizzle";
 import { eq, and } from "drizzle-orm";
-import { usersBundle, users, usersOtp } from "drizzle/schema";
+import {
+  usersBundle,
+  users,
+  usersOtp,
+  conversationMembers,
+  conversations,
+  messages,
+} from "drizzle/schema";
 import * as bcrypt from "bcrypt";
 
 export async function getUserById(userId: number) {
@@ -93,6 +100,16 @@ export async function addOTPKeys({
 
 export async function deleteUserBundle(userId: number) {
   return await db.delete(usersBundle).where(eq(usersBundle.userId, userId));
+}
+
+export async function deleteUser(userId: number) {
+  await db.delete(usersOtp).where(eq(usersOtp.userId, userId));
+  await db.delete(usersBundle).where(eq(usersBundle.userId, userId));
+  await db
+    .delete(conversationMembers)
+    .where(eq(conversationMembers.userId, userId));
+  await db.delete(messages).where(eq(messages.senderId, userId));
+  return await db.delete(users).where(eq(users.id, userId));
 }
 
 export async function getOTPKeyByClientId(userId: number, clientId: number) {
