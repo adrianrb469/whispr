@@ -1,25 +1,29 @@
-// rutas Hono
-// index.ts
-import { Hono } from 'hono';
-import { zValidator } from '@hono/zod-validator';
-import { transactionSchema } from './schemas';
-import { addBlock, getAllBlocks } from './service';
+import { Hono } from "hono";
+import { zValidator } from "@hono/zod-validator";
+import { transactionSchema } from "./schemas";
+import { addTransaction, getAllTransactions } from "./service";
 
-const blockchainRoute = new Hono();
+// Inicializa el blockchain en memoria
+import { initializeBlockchain } from "./blockchain";
+initializeBlockchain();
 
-blockchainRoute.get('/transactionss', async (c) => {
-  const blocks = await getAllBlocks();
-  return c.json(blocks);
-});
+const app = new Hono();
 
-blockchainRoute.post(
-  '/transactions',
-  zValidator('json', transactionSchema),
+// POST /transactions
+app.post(
+  "/transactions",
+  zValidator("json", transactionSchema),
   async (c) => {
-    const data = c.req.valid('json');
-    const newBlock = await addBlock(data);
-    return c.json(newBlock);
-  }
+    const { sender, message } = c.req.valid("json");
+    const block = addTransaction(sender, message);
+    return c.json(block, 201);
+  },
 );
 
-export default blockchainRoute;
+// GET /transactions
+app.get("/transactions", async (c) => {
+  const chain = getAllTransactions();
+  return c.json(chain);
+});
+
+export default app;

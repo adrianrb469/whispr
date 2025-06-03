@@ -1,31 +1,54 @@
-// blockchain.ts
-import { createHash } from 'crypto';
-
-export interface BlockData {
-  sender: string; // esta varible es para el nombre del usuario
-  message: string; // esta es para la parte del mensaje
-  timestamp: string; // esta es la parte de la fecha
-}
-
-export class Block {
+const crypto = require("crypto");
+export interface Block {
   id: number;
-  timestamp: string;
+  timestamp: Date;
   sender: string;
   message: string;
   previousHash: string;
   hash: string;
+}
 
-  constructor(id: number, data: BlockData, previousHash: string) {
-    this.id = id;
-    this.timestamp = data.timestamp;
-    this.sender = data.sender;
-    this.message = data.message;
-    this.previousHash = previousHash;
-    this.hash = this.calculateHash();
-  }
+let blockchain: Block[] = [];
 
-  calculateHash(): string {
-    const data = this.id + this.timestamp + this.sender + this.message + this.previousHash;
-    return createHash('sha256').update(data).digest('hex');
+function createGenesisBlock(): Block {
+  const genesis: Block = {
+    id: 0,
+    timestamp: new Date(),
+    sender: "Genesis",
+    message: "Genesis Block",
+    previousHash: "0",
+    hash: "",
+  };
+  genesis.hash = calculateHash(genesis);
+  return genesis;
+}
+
+export function initializeBlockchain() {
+  if (blockchain.length === 0) {
+    blockchain.push(createGenesisBlock());
   }
+}
+
+export function calculateHash(block: Omit<Block, "hash">): string {
+  const str = `${block.id}${block.timestamp.toISOString()}${block.sender}${block.message}${block.previousHash}`;
+  return crypto.createHash("sha256").update(str).digest("hex");
+}
+
+export function addBlock(sender: string, message: string): Block {
+  const lastBlock = blockchain[blockchain.length - 1];
+  const newBlock: Block = {
+    id: lastBlock.id + 1,
+    timestamp: new Date(),
+    sender,
+    message,
+    previousHash: lastBlock.hash,
+    hash: "",
+  };
+  newBlock.hash = calculateHash(newBlock);
+  blockchain.push(newBlock);
+  return newBlock;
+}
+
+export function getBlockchain(): Block[] {
+  return blockchain;
 }

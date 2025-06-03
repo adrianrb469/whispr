@@ -45,7 +45,7 @@ app.get(
 
         console.log(`Connected to conversation: ${conversationId}`);
       },
-
+      // mensage que se esta mandando
       async onMessage(event, ws) {
         try {
           const msg = JSON.parse(event.data.toString());
