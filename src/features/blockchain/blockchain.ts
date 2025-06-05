@@ -42,37 +42,46 @@ export async function getLastBlock(
 export async function createGenesisBlock(
   conversationId: number
 ): Promise<Block> {
-  const genesis = {
-    id: 0, // This will be overwritten by the database
+  const genesisWithoutHash = {
     conversationId,
     timestamp: new Date(),
     sender: "System",
     message: "Genesis Block",
     previousHash: "0",
-    hash: "",
   };
 
-  // Calculate hash before inserting
-  const hashInput = `0${genesis.timestamp.toISOString()}${genesis.sender}${
-    genesis.message
-  }0${conversationId}`;
-  genesis.hash = createHash("sha256").update(hashInput).digest("hex");
-
+  // Insert into database to get the actual ID
   const [insertedBlock] = await db
     .insert(blockchain)
     .values({
-      conversationId: genesis.conversationId,
-      timestamp: genesis.timestamp,
-      sender: genesis.sender,
-      message: genesis.message,
-      previousHash: genesis.previousHash,
-      hash: genesis.hash,
+      conversationId: genesisWithoutHash.conversationId,
+      timestamp: genesisWithoutHash.timestamp,
+      sender: genesisWithoutHash.sender,
+      message: genesisWithoutHash.message,
+      previousHash: genesisWithoutHash.previousHash,
+      hash: "", // Temporary empty hash
     })
     .returning();
 
-  return {
+  // Create the complete block with the real database ID
+  const completeBlock: Block = {
     ...insertedBlock,
     timestamp: new Date(insertedBlock.timestamp),
+  };
+
+  // Calculate hash with the actual database ID
+  const calculatedHash = calculateHash(completeBlock);
+
+  // Update the hash in the database
+  await db
+    .update(blockchain)
+    .set({ hash: calculatedHash })
+    .where(eq(blockchain.id, insertedBlock.id));
+
+  // Return the complete block with the correct hash
+  return {
+    ...completeBlock,
+    hash: calculatedHash,
   };
 }
 
@@ -87,36 +96,47 @@ export async function addBlock(newBlockData: NewBlock): Promise<Block> {
     lastBlock = await createGenesisBlock(conversationId);
   }
 
-  // Create new block
-  const newBlock = {
-    id: 0, // Will be set by database
+  // Create new block without hash first
+  const newBlockWithoutHash = {
     conversationId,
     timestamp: new Date(),
     sender,
     message,
     previousHash: lastBlock.hash,
-    hash: "",
   };
 
-  // Calculate hash
-  newBlock.hash = calculateHash(newBlock);
-
-  // Insert into database
+  // Insert into database to get the actual ID
   const [insertedBlock] = await db
     .insert(blockchain)
     .values({
-      conversationId: newBlock.conversationId,
-      timestamp: newBlock.timestamp,
-      sender: newBlock.sender,
-      message: newBlock.message,
-      previousHash: newBlock.previousHash,
-      hash: newBlock.hash,
+      conversationId: newBlockWithoutHash.conversationId,
+      timestamp: newBlockWithoutHash.timestamp,
+      sender: newBlockWithoutHash.sender,
+      message: newBlockWithoutHash.message,
+      previousHash: newBlockWithoutHash.previousHash,
+      hash: "", // Temporary empty hash
     })
     .returning();
 
-  return {
+  // Now create the complete block with the real database ID
+  const completeBlock: Block = {
     ...insertedBlock,
     timestamp: new Date(insertedBlock.timestamp),
+  };
+
+  // Calculate hash with the actual database ID
+  const calculatedHash = calculateHash(completeBlock);
+
+  // Update the hash in the database
+  await db
+    .update(blockchain)
+    .set({ hash: calculatedHash })
+    .where(eq(blockchain.id, insertedBlock.id));
+
+  // Return the complete block with the correct hash
+  return {
+    ...completeBlock,
+    hash: calculatedHash,
   };
 }
 
@@ -141,7 +161,12 @@ export async function validateBlockchain(
 ): Promise<boolean> {
   const chain = await getBlockchain(conversationId);
 
-  if (chain.length === 0) return true;
+  if (chain.length === 0) {
+    console.log(
+      `[validateBlockchain] Chain is empty for conversation ${conversationId}. Considered valid.`
+    );
+    return true;
+  }
 
   for (let i = 1; i < chain.length; i++) {
     const currentBlock = chain[i];
@@ -149,15 +174,40 @@ export async function validateBlockchain(
 
     // Check if current block's previousHash matches previous block's hash
     if (currentBlock.previousHash !== previousBlock.hash) {
+      console.error(
+        `[validateBlockchain] Invalid previousHash at index ${i}:`,
+        `currentBlock.previousHash=${currentBlock.previousHash}, previousBlock.hash=${previousBlock.hash}`,
+        `Block ID: ${currentBlock.id}, Previous Block ID: ${previousBlock.id}`
+      );
       return false;
     }
 
     // Recalculate and verify current block's hash
+    console.log(
+      "[validateBlockchain] Block data for recalculation:",
+      JSON.stringify(currentBlock, null, 2)
+    );
+    console.log(
+      "[validateBlockchain] String used for hash:",
+      `${currentBlock.id}${currentBlock.timestamp.toISOString()}${
+        currentBlock.sender
+      }${currentBlock.message}${currentBlock.previousHash}${
+        currentBlock.conversationId
+      }`
+    );
     const recalculatedHash = calculateHash(currentBlock);
     if (currentBlock.hash !== recalculatedHash) {
+      console.error(
+        `[validateBlockchain] Invalid hash at index ${i}:`,
+        `currentBlock.hash=${currentBlock.hash}, recalculatedHash=${recalculatedHash}`,
+        `Block ID: ${currentBlock.id}`
+      );
       return false;
     }
   }
 
+  console.log(
+    `[validateBlockchain] Chain is valid for conversation ${conversationId}.`
+  );
   return true;
 }
