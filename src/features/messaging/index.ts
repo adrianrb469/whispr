@@ -19,25 +19,12 @@ app.get(
       async onOpen(_, ws) {
         const rawWs = ws.raw as ServerWebSocket;
 
-        const userId = c.get("userId");
-
         const conversation = await getConversation(conversationId);
 
         if (!conversation) {
           return {
             status: 404,
             body: "Conversation not found",
-          };
-        }
-
-        const isUserInConversation = await userInConversation(
-          userId,
-          conversationId,
-        );
-        if (!isUserInConversation) {
-          return {
-            status: 403,
-            body: "User not in conversation",
           };
         }
 
