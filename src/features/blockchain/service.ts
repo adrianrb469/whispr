@@ -5,6 +5,8 @@ import {
   type NewBlock,
 } from "./blockchain";
 
+// funcion para agregar una transacción a la blockchain
+// Esta función toma el ID de la conversación, el remitente y el mensaje,
 export async function addTransaction(
   conversationId: number,
   sender: string,
@@ -18,6 +20,8 @@ export async function addTransaction(
   return addBlock(newBlock);
 }
 
+// funcion para obtener todas las transacciones de una conversación
+// Si no se proporciona un ID de conversación, se obtienen todas las transacciones
 export async function getAllTransactions(conversationId?: number) {
   return getBlockchain(conversationId);
 }

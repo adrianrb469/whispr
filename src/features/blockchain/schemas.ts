@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+// esquema para validar las transacciones 
 export const transactionSchema = z.object({
   conversationId: z
     .number()
@@ -9,6 +10,8 @@ export const transactionSchema = z.object({
   message: z.string().min(1, "Message is required"),
 });
 
+// esquema para validar los parámetros de la consulta al obtener transacciones
+// conversationId es opcional y se transforma a número si está presente
 export const getTransactionsSchema = z.object({
   conversationId: z
     .string()

@@ -3,6 +3,7 @@ import db from "@/db/drizzle";
 import { blockchain } from "drizzle/schema";
 import { eq, and, desc } from "drizzle-orm";
 
+// Aqui definimos la estructura del bloque de la blockchain
 export interface Block {
   id: number;
   conversationId: number | null;
@@ -13,12 +14,15 @@ export interface Block {
   hash: string;
 }
 
+// Nueva interfaz para los datos del bloque que se van a agregar
+// Esta interfaz no incluye el hash, ya que se calculará después de insertar el bloque
 export interface NewBlock {
   conversationId: number;
   sender: string;
   message: string;
 }
 
+// Función para calcular el hash de un bloque usabdo SHA-256
 export function calculateHash(block: Omit<Block, "hash">): string {
   const str = `${block.id}${block.timestamp.toISOString()}${block.sender}${
     block.message
@@ -26,6 +30,7 @@ export function calculateHash(block: Omit<Block, "hash">): string {
   return createHash("sha256").update(str).digest("hex");
 }
 
+// Función para obtener el último bloque de una conversación específica
 export async function getLastBlock(
   conversationId: number
 ): Promise<Block | null> {
@@ -39,6 +44,8 @@ export async function getLastBlock(
   return result[0] || null;
 }
 
+// Función para crear el bloque génesis de una conversación
+// Este bloque es el primer bloque de la blockchain y no tiene un bloque anterior
 export async function createGenesisBlock(
   conversationId: number
 ): Promise<Block> {
@@ -50,7 +57,7 @@ export async function createGenesisBlock(
     previousHash: "0",
   };
 
-  // Insert into database to get the actual ID
+  // Insertar en la base de datos para obtener el ID real
   const [insertedBlock] = await db
     .insert(blockchain)
     .values({
@@ -63,40 +70,48 @@ export async function createGenesisBlock(
     })
     .returning();
 
-  // Create the complete block with the real database ID
+  // crear el bloque completo con el ID real de la base de datos
   const completeBlock: Block = {
     ...insertedBlock,
     timestamp: new Date(insertedBlock.timestamp),
   };
 
-  // Calculate hash with the actual database ID
+  // calcular el hash con el ID real de la base de datos
+  // Esto es necesario porque el ID se usa en el cálculo del hash
   const calculatedHash = calculateHash(completeBlock);
 
-  // Update the hash in the database
+  // actualizar el hash en la base de datos
+  // Esto asegura que el bloque génesis tenga un hash correcto
   await db
     .update(blockchain)
     .set({ hash: calculatedHash })
     .where(eq(blockchain.id, insertedBlock.id));
 
-  // Return the complete block with the correct hash
+  // retornamos el bloque completo con el hash correcto
+  // Esto asegura que el bloque génesis tenga un hash correcto
   return {
     ...completeBlock,
     hash: calculatedHash,
   };
 }
 
+// Función para agregar un nuevo bloque a la blockchain
+// Esta función toma los datos del nuevo bloque, obtiene el último bloque de la conversación,
 export async function addBlock(newBlockData: NewBlock): Promise<Block> {
   const { conversationId, sender, message } = newBlockData;
 
-  // Get the last block for this conversation
+  // Obtener el último bloque de la conversación
+  // Si no hay bloques, se creará el bloque génesis
   let lastBlock = await getLastBlock(conversationId);
 
-  // If no blocks exist for this conversation, create genesis block
+  // Si no hay un último bloque, creamos el bloque génesis
+  // El bloque génesis es el primer bloque de la blockchain y no tiene un bloque anterior
   if (!lastBlock) {
     lastBlock = await createGenesisBlock(conversationId);
   }
 
-  // Create new block without hash first
+  // Creamos un nuevo bloque sin el hash
+  // Este bloque contendrá los datos del nuevo mensaje y el hash del bloque anterior
   const newBlockWithoutHash = {
     conversationId,
     timestamp: new Date(),
@@ -105,7 +120,8 @@ export async function addBlock(newBlockData: NewBlock): Promise<Block> {
     previousHash: lastBlock.hash,
   };
 
-  // Insert into database to get the actual ID
+  // Insertar el nuevo bloque en la base de datos
+  // Esto nos dará el ID real del bloque insertado
   const [insertedBlock] = await db
     .insert(blockchain)
     .values({
@@ -118,28 +134,34 @@ export async function addBlock(newBlockData: NewBlock): Promise<Block> {
     })
     .returning();
 
-  // Now create the complete block with the real database ID
+  // Creamos el bloque completo con el ID real de la base de datos
+  // Esto es necesario porque el ID se usa en el cálculo del hash
   const completeBlock: Block = {
     ...insertedBlock,
     timestamp: new Date(insertedBlock.timestamp),
   };
 
-  // Calculate hash with the actual database ID
+  // Calculamos el hash del bloque completo
+  // Esto asegura que el hash sea correcto y único para este bloque
   const calculatedHash = calculateHash(completeBlock);
 
-  // Update the hash in the database
+  // Actualizamos el hash en la base de datos
+  // Esto asegura que el bloque tenga un hash correcto
   await db
     .update(blockchain)
     .set({ hash: calculatedHash })
     .where(eq(blockchain.id, insertedBlock.id));
 
-  // Return the complete block with the correct hash
+  // retornamos el bloque completo con el hash correcto
+  // Esto asegura que el bloque tenga un hash correcto
   return {
     ...completeBlock,
     hash: calculatedHash,
   };
 }
 
+// Función para obtener la blockchain de una conversación específica o de todas las conversaciones
+// Si se proporciona un conversationId, se obtendrán solo los bloques de esa conversación
 export async function getBlockchain(conversationId?: number): Promise<Block[]> {
   const query = conversationId
     ? db
@@ -156,15 +178,14 @@ export async function getBlockchain(conversationId?: number): Promise<Block[]> {
   }));
 }
 
+// Función para validar la blockchain de una conversación específica
+// Esta función verifica que todos los bloques estén correctamente encadenados y que los hashes sean válidos
 export async function validateBlockchain(
   conversationId: number
 ): Promise<boolean> {
   const chain = await getBlockchain(conversationId);
 
   if (chain.length === 0) {
-    console.log(
-      `[validateBlockchain] Chain is empty for conversation ${conversationId}. Considered valid.`
-    );
     return true;
   }
 
@@ -172,42 +193,18 @@ export async function validateBlockchain(
     const currentBlock = chain[i];
     const previousBlock = chain[i - 1];
 
-    // Check if current block's previousHash matches previous block's hash
+    // verifico que el ID del bloque actual sea mayor que el del bloque anterior
     if (currentBlock.previousHash !== previousBlock.hash) {
-      console.error(
-        `[validateBlockchain] Invalid previousHash at index ${i}:`,
-        `currentBlock.previousHash=${currentBlock.previousHash}, previousBlock.hash=${previousBlock.hash}`,
-        `Block ID: ${currentBlock.id}, Previous Block ID: ${previousBlock.id}`
-      );
       return false;
     }
 
-    // Recalculate and verify current block's hash
-    console.log(
-      "[validateBlockchain] Block data for recalculation:",
-      JSON.stringify(currentBlock, null, 2)
-    );
-    console.log(
-      "[validateBlockchain] String used for hash:",
-      `${currentBlock.id}${currentBlock.timestamp.toISOString()}${
-        currentBlock.sender
-      }${currentBlock.message}${currentBlock.previousHash}${
-        currentBlock.conversationId
-      }`
-    );
+    // recalculo el hash del bloque actual usando la función calculateHash
     const recalculatedHash = calculateHash(currentBlock);
     if (currentBlock.hash !== recalculatedHash) {
-      console.error(
-        `[validateBlockchain] Invalid hash at index ${i}:`,
-        `currentBlock.hash=${currentBlock.hash}, recalculatedHash=${recalculatedHash}`,
-        `Block ID: ${currentBlock.id}`
-      );
       return false;
     }
   }
-
-  console.log(
-    `[validateBlockchain] Chain is valid for conversation ${conversationId}.`
-  );
+  // Si todos los bloques son válidos, retornamos true
+  // Esto indica que la blockchain de la conversación es válida
   return true;
 }

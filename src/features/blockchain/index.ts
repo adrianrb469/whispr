@@ -9,19 +9,18 @@ import {
 
 const app = new Hono();
 
-// POST /transactions - Add a new transaction to a conversation's blockchain
+// POST /transactions - 
 app.post("/transactions", zValidator("json", transactionSchema), async (c) => {
   try {
     const { conversationId, sender, message } = c.req.valid("json");
     const block = await addTransaction(conversationId, sender, message);
     return c.json(block, 201);
   } catch (error) {
-    console.error("Error adding transaction:", error);
     return c.json({ error: "Failed to add transaction" }, 500);
   }
 });
 
-// GET /transactions - Get blockchain for a specific conversation or all conversations
+// GET /transactions 
 app.get(
   "/transactions",
   zValidator("query", getTransactionsSchema),
@@ -31,13 +30,12 @@ app.get(
       const chain = await getAllTransactions(conversationId);
       return c.json(chain);
     } catch (error) {
-      console.error("Error fetching transactions:", error);
       return c.json({ error: "Failed to fetch transactions" }, 500);
     }
   }
 );
 
-// GET /validate/:conversationId - Validate blockchain integrity for a conversation
+// GET /validate/:conversationId 
 app.get("/validate/:conversationId", async (c) => {
   try {
     const conversationId = parseInt(c.req.param("conversationId"), 10);
@@ -54,7 +52,6 @@ app.get("/validate/:conversationId", async (c) => {
         : "Blockchain integrity compromised",
     });
   } catch (error) {
-    console.error("Error validating blockchain:", error);
     return c.json({ error: "Failed to validate blockchain" }, 500);
   }
 });
