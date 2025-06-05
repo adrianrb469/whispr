@@ -306,6 +306,7 @@ async function getDirectMessageHistory(
   const chatHistory = await db
     .select({
       messages,
+      senderName: users.username,
     })
     .from(messages)
     .innerJoin(users, eq(messages.senderId, users.id))
@@ -316,6 +317,7 @@ async function getDirectMessageHistory(
     id: message.messages.id,
     conversationId: message.messages.conversationId,
     senderId: message.messages.senderId,
+    senderName: message.senderName,
     content: message.messages.content,
     createdAt: message.messages.createdAt,
   }));
