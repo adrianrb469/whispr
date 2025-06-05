@@ -1,29 +1,62 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { transactionSchema } from "./schemas";
-import { addTransaction, getAllTransactions } from "./service";
-
-// Inicializa el blockchain en memoria
-import { initializeBlockchain } from "./blockchain";
-initializeBlockchain();
+import { transactionSchema, getTransactionsSchema } from "./schemas";
+import {
+  addTransaction,
+  getAllTransactions,
+  validateConversationBlockchain,
+} from "./service";
 
 const app = new Hono();
 
-// POST /transactions
-app.post(
-  "/transactions",
-  zValidator("json", transactionSchema),
-  async (c) => {
-    const { sender, message } = c.req.valid("json");
-    const block = addTransaction(sender, message);
+// POST /transactions - Add a new transaction to a conversation's blockchain
+app.post("/transactions", zValidator("json", transactionSchema), async (c) => {
+  try {
+    const { conversationId, sender, message } = c.req.valid("json");
+    const block = await addTransaction(conversationId, sender, message);
     return c.json(block, 201);
-  },
+  } catch (error) {
+    console.error("Error adding transaction:", error);
+    return c.json({ error: "Failed to add transaction" }, 500);
+  }
+});
+
+// GET /transactions - Get blockchain for a specific conversation or all conversations
+app.get(
+  "/transactions",
+  zValidator("query", getTransactionsSchema),
+  async (c) => {
+    try {
+      const { conversationId } = c.req.valid("query");
+      const chain = await getAllTransactions(conversationId);
+      return c.json(chain);
+    } catch (error) {
+      console.error("Error fetching transactions:", error);
+      return c.json({ error: "Failed to fetch transactions" }, 500);
+    }
+  }
 );
 
-// GET /transactions
-app.get("/transactions", async (c) => {
-  const chain = getAllTransactions();
-  return c.json(chain);
+// GET /validate/:conversationId - Validate blockchain integrity for a conversation
+app.get("/validate/:conversationId", async (c) => {
+  try {
+    const conversationId = parseInt(c.req.param("conversationId"), 10);
+    if (isNaN(conversationId)) {
+      return c.json({ error: "Invalid conversation ID" }, 400);
+    }
+
+    const isValid = await validateConversationBlockchain(conversationId);
+    return c.json({
+      conversationId,
+      isValid,
+      message: isValid
+        ? "Blockchain is valid"
+        : "Blockchain integrity compromised",
+    });
+  } catch (error) {
+    console.error("Error validating blockchain:", error);
+    return c.json({ error: "Failed to validate blockchain" }, 500);
+  }
 });
 
 export default app;

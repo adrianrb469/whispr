@@ -36,15 +36,25 @@ export const otpkeySequence = pgSequence("otpkey_sequence", {
   cycle: false,
 });
 
-export const blockchain = pgTable('blockchain', {
-  id: integer('id').primaryKey(),
-  timestamp: timestamp('timestamp').notNull(),
-  sender: text('sender').notNull(),
-  message: text('message').notNull(),
-  previousHash: text('previous_hash').notNull(),
-  hash: text('hash').notNull(),
-});
-
+export const blockchain = pgTable(
+  "blockchain",
+  {
+    id: serial("id").primaryKey(),
+    conversationId: integer("conversation_id"),
+    timestamp: timestamp("timestamp").notNull(),
+    sender: text("sender").notNull(),
+    message: text("message").notNull(),
+    previousHash: text("previous_hash").notNull(),
+    hash: text("hash").notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.conversationId],
+      foreignColumns: [conversations.id],
+      name: "blockchain_conversation_id_conversations_id_fk",
+    }),
+  ]
+);
 
 export const conversations = pgTable("conversations", {
   id: serial().primaryKey().notNull(),

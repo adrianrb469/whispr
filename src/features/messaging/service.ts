@@ -4,25 +4,41 @@ import { conversations, messages, users } from "drizzle/schema";
 import db from "@/db/drizzle";
 import { eq, desc } from "drizzle-orm";
 
-// Importa la función de blockchain
-import { addTransaction } from "../blockchain/service"; 
+// Import the updated blockchain service
+import { addTransaction } from "../blockchain/service";
 
 export async function addMessage(message: newMessage) {
-  const result = await db.insert(messages).values(message);
+  // Convert Date to string for database insert
+  const messageData = {
+    ...message,
+    createdAt: message.createdAt.toISOString(),
+  };
 
-  // Procesa el contenido del mensaje antes de agregarlo al blockchain
-  try {
-    const readableMessage = typeof message.content === "string"
-      ? message.content
-      : JSON.stringify(message.content); // Convierte a texto si es un objeto
+  const result = await db.insert(messages).values(messageData);
 
-    await addTransaction(
-      String(message.senderId), 
-      readableMessage           
-    );
-  } catch (err) {
-    console.error("Blockchain error:", err);
-    
+  // Add transaction to blockchain if conversationId exists
+  if (message.conversationId && message.senderId) {
+    try {
+      // Get sender username for blockchain record
+      const sender = await db
+        .select({ username: users.username })
+        .from(users)
+        .where(eq(users.id, message.senderId))
+        .limit(1);
+
+      const senderName = sender[0]?.username || `User${message.senderId}`;
+
+      // Process message content for blockchain
+      const readableMessage =
+        typeof message.content === "string"
+          ? message.content
+          : JSON.stringify(message.content);
+
+      await addTransaction(message.conversationId, senderName, readableMessage);
+    } catch (err) {
+      console.error("Blockchain transaction error:", err);
+      // Don't fail the message if blockchain fails
+    }
   }
 
   return result;
