@@ -2,7 +2,7 @@ import auth from "@features/auth";
 import messaging from "@/features/messaging";
 import conversation from "@/features/conversation";
 import user from "@/features/user";
-import  blockchain from "./features/blockchain";
+import blockchain from "./features/blockchain";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
@@ -15,10 +15,24 @@ const { websocket } = createBunWebSocket<ServerWebSocket>();
 
 const app = new Hono();
 
+const allowedOrigins = [
+  "http://localhost:8080",
+  "http://localhost:5173",
+  "https://whispr-chatting.netlify.app",
+];
+
 app.use(
   "*",
   cors({
-    origin: "*",
+    origin: (origin) => {
+      if (origin && allowedOrigins.includes(origin)) {
+        return origin;
+      }
+      return "";
+    },
+    credentials: true,
+    allowMethods: ["GET", "POST", "PUT", "DELETE"],
+    allowHeaders: ["Content-Type", "Authorization"],
   })
 );
 
