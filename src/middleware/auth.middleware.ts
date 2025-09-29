@@ -10,7 +10,10 @@ const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY!;
 export const authMiddleware = (): MiddlewareHandler => {
   return async (c, next) => {
     // First, run the JWT verification
-    const jwtMiddleware = jwt({ secret: JWT_SECRET_KEY });
+    const jwtMiddleware = jwt({
+      secret: JWT_SECRET_KEY,
+      cookie: "access_token",
+    });
     await jwtMiddleware(c, async () => {});
 
     // Extract the JWT payload

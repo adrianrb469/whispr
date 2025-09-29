@@ -19,6 +19,7 @@ import {
   handleMfaSetup,
   handleEnableMfa,
   handleResetMfa,
+  handleLogout,
 } from "./controller";
 
 const app = new Hono();
@@ -39,11 +40,7 @@ app.get(
   handleValidateToken
 );
 
-app.post(
-  "/refresh-token",
-  validate("json", refreshTokenSchema),
-  handleRefreshToken
-);
+app.post("/refresh-token", handleRefreshToken);
 
 app.post(
   "/mfa/verify",
@@ -59,5 +56,7 @@ app.post("/mfa/setup", handleMfaSetup);
 app.post("/mfa/enable", handleEnableMfa);
 
 app.post("/mfa/reset", handleResetMfa);
+
+app.post("/logout", handleLogout);
 
 export default app;

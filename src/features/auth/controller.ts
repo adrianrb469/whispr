@@ -1,5 +1,6 @@
 import { Context, Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
+import { setCookie, getCookie, deleteCookie } from "hono/cookie";
 import {
   generateAccessToken,
   login,
@@ -63,9 +64,26 @@ export const handleLogin = async (
     });
   }
 
+  // Set JWT tokens as HTTP-only cookies
+  setCookie(c, "access_token", access_token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "Strict",
+    maxAge: 60 * 60, // 1 hour
+    path: "/",
+  });
+
+  setCookie(c, "refresh_token", refresh_token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "Strict",
+    maxAge: 60 * 60 * 3, // 3 hours
+    path: "/",
+  });
+
   return c.json({
-    access_token,
-    refresh_token,
+    success: true,
+    message: "Login successful",
   });
 };
 
@@ -148,9 +166,26 @@ export const handleOauthGithub = async (
     });
   }
 
+  // Set JWT tokens as HTTP-only cookies
+  setCookie(c, "access_token", access_token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "Strict",
+    maxAge: 60 * 60, // 1 hour
+    path: "/",
+  });
+
+  setCookie(c, "refresh_token", refresh_token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "Strict",
+    maxAge: 60 * 60 * 3, // 3 hours
+    path: "/",
+  });
+
   return c.json({
-    access_token,
-    refresh_token,
+    success: true,
+    message: "Login successful",
   });
 };
 
@@ -190,31 +225,13 @@ export const handleValidateToken = async (
 };
 
 export const handleRefreshToken = async (
-  c: Context<
-    {},
-    "/refresh-token",
-    {
-      in: {
-        json: {
-          refresh_token: string;
-          userId: number;
-        };
-      };
-      out: {
-        json: {
-          refresh_token: string;
-          userId: number;
-        };
-      };
-    }
-  >
+  c: Context<BlankEnv, "/refresh-token", BlankInput>
 ) => {
-  const { userId, refresh_token: current_refresh_token } = c.req.valid("json");
+  // Get refresh token from cookies instead of request body
+  const current_refresh_token = getCookie(c, "refresh_token");
 
-  const user = await getUserById(userId);
-
-  if (!user) {
-    throw new HTTPException(400, { message: "User not found" });
+  if (!current_refresh_token) {
+    throw new HTTPException(400, { message: "No refresh token found" });
   }
 
   const {
@@ -224,6 +241,20 @@ export const handleRefreshToken = async (
 
   if (!refresh_token_validated || !verified_refresh_token_data.valid) {
     throw new HTTPException(400, { message: "Invalid refresh token" });
+  }
+
+  // Extract user ID from the refresh token payload
+  const { verify } = await import("hono/jwt");
+  const payload = await verify(
+    current_refresh_token,
+    process.env.JWT_REFRESH_SECRET_KEY!
+  );
+  const userId = payload.sub as number;
+
+  const user = await getUserById(userId);
+
+  if (!user) {
+    throw new HTTPException(400, { message: "User not found" });
   }
 
   const { success: access_token_success, data: access_token } =
@@ -240,9 +271,26 @@ export const handleRefreshToken = async (
     throw new HTTPException(500, { message: "Error generating tokens" });
   }
 
+  // Set new JWT tokens as HTTP-only cookies
+  setCookie(c, "access_token", access_token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "Strict",
+    maxAge: 60 * 60, // 1 hour
+    path: "/",
+  });
+
+  setCookie(c, "refresh_token", refresh_token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "Strict",
+    maxAge: 60 * 60 * 3, // 3 hours
+    path: "/",
+  });
+
   return c.json({
-    access_token,
-    refresh_token,
+    success: true,
+    message: "Tokens refreshed successfully",
   });
 };
 
@@ -291,9 +339,30 @@ export const handleMfaVerification = async (
   const { data: access_token } = await generateAccessToken(user);
   const { data: refresh_token } = await generateRefreshToken(user);
 
+  if (!access_token || !refresh_token) {
+    throw new HTTPException(500, { message: "Error generating tokens" });
+  }
+
+  // Set JWT tokens as HTTP-only cookies
+  setCookie(c, "access_token", access_token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "Strict",
+    maxAge: 60 * 60, // 1 hour
+    path: "/",
+  });
+
+  setCookie(c, "refresh_token", refresh_token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "Strict",
+    maxAge: 60 * 60 * 3, // 3 hours
+    path: "/",
+  });
+
   return c.json({
-    access_token,
-    refresh_token,
+    success: true,
+    message: "MFA verification successful",
   });
 };
 
@@ -391,5 +460,23 @@ export const handleResetMfa = async (
 
   return c.json({
     message: "MFA reseted",
+  });
+};
+
+export const handleLogout = async (
+  c: Context<BlankEnv, "/logout", BlankInput>
+) => {
+  // Clear the JWT cookies
+  deleteCookie(c, "access_token", {
+    path: "/",
+  });
+
+  deleteCookie(c, "refresh_token", {
+    path: "/",
+  });
+
+  return c.json({
+    success: true,
+    message: "Logged out successfully",
   });
 };
