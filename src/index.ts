@@ -10,6 +10,7 @@ import { ZodError } from "zod";
 import { createBunWebSocket } from "hono/bun";
 import { cors } from "hono/cors";
 import type { ServerWebSocket } from "bun";
+import { standardRateLimiter } from "@/middleware";
 
 const { websocket } = createBunWebSocket<ServerWebSocket>();
 
@@ -45,6 +46,9 @@ app.use("*", async (c, next) => {
 });
 
 app.use("*", logger());
+
+// Apply rate limiting to all routes
+app.use("*", standardRateLimiter());
 
 app.route("/auth", auth);
 app.route("/conversations", conversation);

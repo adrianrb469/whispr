@@ -8,7 +8,7 @@ import {
   validateTokenSchema,
   verifyMfaSchema,
 } from "./schemas";
-import { authMiddleware } from "@/middleware";
+import { authMiddleware, strictRateLimiter } from "@/middleware";
 import {
   handleLogin,
   handleRegister,
@@ -23,6 +23,12 @@ import {
 } from "./controller";
 
 const app = new Hono();
+
+// Apply strict rate limiting to authentication endpoints (brute force protection)
+app.use("/login", strictRateLimiter());
+app.use("/register", strictRateLimiter());
+app.use("/oauth/github", strictRateLimiter());
+app.use("/mfa/verify", strictRateLimiter());
 
 app.post("/login", validate("json", loginSchema), handleLogin);
 
