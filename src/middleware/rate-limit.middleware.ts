@@ -137,7 +137,7 @@ export const rateLimiter = (config: RateLimitConfig): MiddlewareHandler => {
 export const strictRateLimiter = (): MiddlewareHandler => {
   return rateLimiter({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    maxRequests: 5, // 5 requests per 15 minutes
+    maxRequests: 50, // 50 requests per 15 minutes
     blockDurationMs: 60 * 60 * 1000, // Block for 1 hour
     message:
       "Too many authentication attempts. Your IP has been temporarily blocked.",
