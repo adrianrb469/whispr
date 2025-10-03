@@ -68,7 +68,8 @@ export const handleLogin = async (
   setCookie(c, "access_token", access_token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "Strict",
+    // sameSite: "Strict",
+    sameSite: "None",
     maxAge: 60 * 60, // 1 hour
     path: "/",
   });
@@ -76,7 +77,8 @@ export const handleLogin = async (
   setCookie(c, "refresh_token", refresh_token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "Strict",
+    // sameSite: "Strict",
+    sameSite: "None",
     maxAge: 60 * 60 * 3, // 3 hours
     path: "/",
   });
@@ -170,7 +172,8 @@ export const handleOauthGithub = async (
   setCookie(c, "access_token", access_token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "Strict",
+    // sameSite: "Strict",
+    sameSite: "None",
     maxAge: 60 * 60, // 1 hour
     path: "/",
   });
@@ -283,7 +286,8 @@ export const handleRefreshToken = async (
   setCookie(c, "refresh_token", refresh_token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "Strict",
+    // sameSite: "Strict",
+    sameSite: "None",
     maxAge: 60 * 60 * 3, // 3 hours
     path: "/",
   });
@@ -347,7 +351,8 @@ export const handleMfaVerification = async (
   setCookie(c, "access_token", access_token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "Strict",
+    // sameSite: "Strict",
+    sameSite: "None",
     maxAge: 60 * 60, // 1 hour
     path: "/",
   });
@@ -355,7 +360,8 @@ export const handleMfaVerification = async (
   setCookie(c, "refresh_token", refresh_token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "Strict",
+    // sameSite: "Strict",
+    sameSite: "None",
     maxAge: 60 * 60 * 3, // 3 hours
     path: "/",
   });
